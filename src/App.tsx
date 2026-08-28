@@ -11,6 +11,7 @@ import eastselfIcon from './assets/raw/eastself.jpg';
 import okdamIcon from './assets/raw/okdam.png';
 import gswIcon from './assets/raw/gsw.svg';
 import artmuIcon from './assets/raw/artmu.png';
+import artmuDarkIcon from './assets/raw/artmu-dark.png';
 import chatIcon from './assets/raw/chat.png';
 import chatLightIcon from './assets/raw/chat-light.png';
 import setupIcon from './assets/raw/setup.png';
@@ -52,7 +53,12 @@ const ENTRIES: DockEntry[] = [
     icon: awareIcon,
     treatment: 'preshaped',
   },
-  { name: 'artmu', href: 'https://artmu.lost.plus', icon: artmuIcon },
+  {
+    name: 'artmu',
+    href: 'https://artmu.lost.plus',
+    icon: artmuDarkIcon,
+    darkIcon: artmuIcon,
+  },
   { name: 'eastself', href: 'https://eastself.lost.plus', icon: eastselfIcon },
 ];
 
