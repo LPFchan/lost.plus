@@ -234,7 +234,6 @@ function AppIcon({
               dragging.current = true;
               setDraggingNow(true);
               mouseLeft.set(-Infinity);
-              mouseRight.set(-Infinity);
             }}
             onDragEnd={() => {
               // suppress the click that follows a real drag
