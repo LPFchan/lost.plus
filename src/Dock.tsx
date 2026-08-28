@@ -43,6 +43,8 @@ export type DockEntry = {
   name: string;
   href: string;
   icon: string;
+  /** shown instead of `icon` in dark mode */
+  darkIcon?: string;
   /**
    * How the artwork is treated inside the standard macOS icon canvas.
    * - cover:     raw rectangular image; pipeline crops and rounds it
@@ -79,6 +81,11 @@ export function dockNaturalWidth(entries: number, tuning: DockTuning): number {
   return entries * tuning.size + (entries - 1) * tuning.gap + tray.padding * 2;
 }
 
+/** horizontal room magnification+nudge needs beyond the natural width */
+export function dockOverflowReserve(tuning: DockTuning): number {
+  return Math.ceil((tuning.size * (tuning.scale - 1)) / 2) + tuning.nudge;
+}
+
 function MacosIcon({ entry, alt }: { entry: DockEntry; alt: string }) {
   const treatment = entry.treatment ?? 'cover';
   const content =
@@ -86,6 +93,21 @@ function MacosIcon({ entry, alt }: { entry: DockEntry; alt: string }) {
       <span className="macos-icon-content treatment-tile">
         <img src={entry.icon} alt={alt} draggable={false} />
       </span>
+    ) : entry.darkIcon ? (
+      <>
+        <img
+          src={entry.icon}
+          alt={alt}
+          draggable={false}
+          className={'macos-icon-content treatment-' + treatment + ' dark:hidden'}
+        />
+        <img
+          src={entry.darkIcon}
+          alt=""
+          draggable={false}
+          className={'macos-icon-content treatment-' + treatment + ' hidden dark:block'}
+        />
+      </>
     ) : (
       <img
         src={entry.icon}
@@ -121,23 +143,20 @@ export default function Dock({
   const rightSpring = useSpring(right, spring);
   const tray = trayGeometry(tuning);
   const naturalWidth = dockNaturalWidth(entries.length, tuning);
-  // magnification grows icons upward/outward beyond the dock's layout box;
-  // without clipping-x the page becomes horizontally scrollable
-  const overflowReserve = Math.ceil((tuning.size * (tuning.scale - 1)) / 2) + tuning.nudge;
+  // magnification grows icons beyond the dock's layout box on all sides.
+  // reserve room inside the clip boundary so nothing is ever visually cut,
+  // while the boundary itself stops the page from becoming scrollable
+  const overflowReserve = dockOverflowReserve(tuning);
 
   return (
     <>
       <div
-        className="hidden min-[480px]:block"
+        className="hidden min-[480px]:flex min-[480px]:items-end min-[480px]:justify-center"
         style={{
-          width: naturalWidth * zoom,
+          width: (naturalWidth + overflowReserve * 2) * zoom,
           height: tray.height * zoom,
           overflowX: 'clip',
           overflowY: 'visible',
-          paddingLeft: overflowReserve,
-          paddingRight: overflowReserve,
-          marginLeft: -overflowReserve,
-          marginRight: -overflowReserve,
         }}
       >
       <Reorder.Group

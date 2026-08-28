@@ -4,6 +4,7 @@ import Dock, {
   DockEntry,
   DockTuning,
   dockNaturalWidth,
+  dockOverflowReserve,
 } from './Dock';
 import heatmapIcon from './assets/raw/heatmap.png';
 import eastselfIcon from './assets/raw/eastself.jpg';
@@ -11,6 +12,7 @@ import okdamIcon from './assets/raw/okdam.png';
 import gswIcon from './assets/raw/gsw.svg';
 import artmuIcon from './assets/raw/artmu.png';
 import chatIcon from './assets/raw/chat.png';
+import chatLightIcon from './assets/raw/chat-light.png';
 import setupIcon from './assets/raw/setup.png';
 import githubIcon from './assets/raw/github-mark.svg';
 import markfopsIcon from './assets/raw/markfops.png';
@@ -32,7 +34,12 @@ const ENTRIES: DockEntry[] = [
   { name: 'okdam', href: 'https://okdam.lost.plus', icon: okdamIcon },
   { name: 'gsw', href: 'https://gsw.lost.plus', icon: gswIcon },
   { name: 'setup', href: 'https://setup.lost.plus', icon: setupIcon },
-  { name: 'chat', href: 'https://chat.lost.plus', icon: chatIcon },
+  {
+    name: 'chat',
+    href: 'https://chat.lost.plus',
+    icon: chatIcon,
+    darkIcon: chatLightIcon,
+  },
   {
     name: 'markfops',
     href: 'https://github.com/LPFchan/Markfops',
@@ -86,7 +93,11 @@ export default function App() {
   //   > B (natural width):   macOS dock at its natural size
   const [zoom, setZoom] = useState(1);
   useEffect(() => {
-    const natural = dockNaturalWidth(ENTRIES.length, tuning) + 32; // breathing room
+    // zoom fits the dock *and* the room its magnification needs to breathe
+    const natural =
+      dockNaturalWidth(ENTRIES.length, tuning) +
+      dockOverflowReserve(tuning) * 2 +
+      32;
     const onResize = () =>
       setZoom(Math.min(1, (window.innerWidth - 16) / natural));
     onResize();
