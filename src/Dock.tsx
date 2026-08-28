@@ -11,10 +11,11 @@ import {
   motion,
   useDragControls,
   useMotionValue,
+  useMotionValueEvent,
   useSpring,
   useTransform,
 } from 'framer-motion';
-import { ReactNode, useMemo, useRef, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 export type DockTuning = {
   size: number; // resting icon width in px
@@ -222,10 +223,46 @@ function AppIcon({
   const dragging = useRef(false);
   const dragControls = useDragControls();
   const [draggingNow, setDraggingNow] = useState(false);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+
+  // radix anchors the tooltip to the trigger's *layout* box, which ignores
+  // the scale transform — so while the icon magnifies, the tooltip would
+  // stay at the unscaled edge. Track the icon's visual bounds and keep the
+  // tooltip content's fixed position pinned to the visual top edge.
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [tooltipTop, setTooltipTop] = useState<number | null>(null);
+  const [tooltipCenterX, setTooltipCenterX] = useState(0);
+  useMotionValueEvent(scaleSpring, 'change', () => {
+    if (!tooltipOpen) return;
+    const el = buttonRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setTooltipTop(rect.top);
+    setTooltipCenterX(rect.left + rect.width / 2);
+  });
+  useEffect(() => {
+    const el = buttonRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setTooltipTop(rect.top);
+    setTooltipCenterX(rect.left + rect.width / 2);
+  }, [tuning.size]);
 
   return (
     <Tooltip.Provider delayDuration={0}>
-      <Tooltip.Root open={draggingNow ? false : undefined}>
+      <Tooltip.Root
+        open={draggingNow ? false : tooltipOpen}
+        onOpenChange={(open) => {
+          setTooltipOpen(open);
+          if (open) {
+            const rect = buttonRef.current?.getBoundingClientRect();
+            if (rect) {
+              setTooltipTop(rect.top);
+              setTooltipCenterX(rect.left + rect.width / 2);
+            }
+          }
+        }}
+      >
         <Tooltip.Trigger asChild>
           <Reorder.Item
             as="div"
@@ -249,6 +286,7 @@ function AppIcon({
             style={{ position: 'relative' }}
           >
             <motion.button
+            ref={buttonRef}
             onPointerDown={(e) => {
               dragControls.start(e);
             }}
@@ -273,11 +311,22 @@ function AppIcon({
         </Tooltip.Trigger>
         <Tooltip.Portal>
           <Tooltip.Content
-            sideOffset={10}
+            sideOffset={0}
+            collisionPadding={0}
+            avoidCollisions={false}
+            style={
+              tooltipTop == null
+                ? undefined
+                : {
+                    position: 'fixed',
+                    top: tooltipTop - 10,
+                    left: tooltipCenterX,
+                    transform: 'translate(-50%, -100%)',
+                  }
+            }
             className="bg-neutral-100 shadow shadow-black/20 border border-black/10 dark:bg-neutral-700 dark:border-neutral-600 px-2 py-1.5 text-sm rounded text-neutral-800 dark:text-white font-medium z-50"
           >
             {children}
-            <Tooltip.Arrow className="fill-neutral-100 dark:fill-neutral-700" />
           </Tooltip.Content>
         </Tooltip.Portal>
       </Tooltip.Root>
