@@ -56,8 +56,8 @@ const ENTRIES: DockEntry[] = [
   {
     name: 'artmu',
     href: 'https://artmu.lost.plus',
-    icon: artmuDarkIcon,
-    darkIcon: artmuIcon,
+    icon: artmuIcon,
+    darkIcon: artmuDarkIcon,
   },
   { name: 'eastself', href: 'https://eastself.lost.plus', icon: eastselfIcon },
 ];
