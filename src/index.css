@@ -45,6 +45,18 @@ body {
   height: 100%;
 }
 
+/* dark-mode icon variant: pipeline-level toggles (utility classes lose the
+   specificity war against .macos-icon-content's display: block) */
+.macos-icon-content.variant-light,
+.dark .macos-icon-content.variant-dark {
+  display: block;
+}
+
+.macos-icon-content.variant-dark,
+.dark .macos-icon-content.variant-light {
+  display: none;
+}
+
 /* treatment: raw rectangular image, cover-cropped + rounded by the pipeline */
 .macos-icon-content.treatment-cover {
   object-fit: cover;

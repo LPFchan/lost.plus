@@ -99,13 +99,13 @@ function MacosIcon({ entry, alt }: { entry: DockEntry; alt: string }) {
           src={entry.icon}
           alt={alt}
           draggable={false}
-          className={'macos-icon-content treatment-' + treatment + ' dark:hidden'}
+          className={'macos-icon-content treatment-' + treatment + ' variant-light'}
         />
         <img
           src={entry.darkIcon}
           alt=""
           draggable={false}
-          className={'macos-icon-content treatment-' + treatment + ' hidden dark:block'}
+          className={'macos-icon-content treatment-' + treatment + ' variant-dark'}
         />
       </>
     ) : (
