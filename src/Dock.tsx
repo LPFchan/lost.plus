@@ -15,7 +15,7 @@ import {
   useSpring,
   useTransform,
 } from 'framer-motion';
-import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactNode, useMemo, useRef, useState } from 'react';
 
 export type DockTuning = {
   size: number; // resting icon width in px
@@ -223,113 +223,98 @@ function AppIcon({
   const dragging = useRef(false);
   const dragControls = useDragControls();
   const [draggingNow, setDraggingNow] = useState(false);
-  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const [triggerHovered, setTriggerHovered] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  // radix's grace-period logic can leave the tooltip stuck open when the
+  // cursor never fires a clean pointerleave — e.g. the magnified icon
+  // springs out from under a stationary cursor. We never fight radix's
+  // open state (controlling it breaks reopen); instead the content hides
+  // itself whenever the trigger is not genuinely hovered.
+  useMotionValueEvent(scaleSpring, 'change', () => {
+    const el = triggerRef.current;
+    if (!el) return;
+    setTriggerHovered(el.matches(':hover'));
+  });
 
   // radix anchors the tooltip to the trigger's *layout* box, which ignores
-  // the scale transform — so while the icon magnifies, the tooltip would
-  // stay at the unscaled edge. Track the icon's visual bounds and keep the
-  // tooltip content's fixed position pinned to the visual top edge.
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const [tooltipTop, setTooltipTop] = useState<number | null>(null);
-  const [tooltipCenterX, setTooltipCenterX] = useState(0);
-  useMotionValueEvent(scaleSpring, 'change', () => {
-    if (!tooltipOpen) return;
-    const el = buttonRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setTooltipTop(rect.top);
-    setTooltipCenterX(rect.left + rect.width / 2);
+  // the scale transform — so while the icon magnifies upward, the tooltip
+  // would hover at the unscaled edge. Offset the tooltip upward by exactly
+  // the icon's visual growth, driven by the same spring, so it rides the
+  // icon's real top edge. Applied as a CSS var on the content itself so we
+  // don't wrap radix's node (wrapping breaks its close-animation detection).
+  const lift = useTransform(scaleSpring, (s) => -((s - 1) * tuning.size) / 2);
+  const contentRef = useRef<HTMLDivElement>(null);
+  useMotionValueEvent(lift, 'change', (v) => {
+    contentRef.current?.style.setProperty('--tooltip-lift', v + 'px');
   });
-  useEffect(() => {
-    const el = buttonRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setTooltipTop(rect.top);
-    setTooltipCenterX(rect.left + rect.width / 2);
-  }, [tuning.size]);
 
   return (
-    <Tooltip.Provider delayDuration={0}>
-      <Tooltip.Root
-        open={draggingNow ? false : tooltipOpen}
-        onOpenChange={(open) => {
-          setTooltipOpen(open);
-          if (open) {
-            const rect = buttonRef.current?.getBoundingClientRect();
-            if (rect) {
-              setTooltipTop(rect.top);
-              setTooltipCenterX(rect.left + rect.width / 2);
-            }
-          }
-        }}
-      >
-        <Tooltip.Trigger asChild>
-          <Reorder.Item
-            as="div"
-            ref={ref}
-            value={entry}
-            drag="x"
-            dragListener={false}
-            dragControls={dragControls}
-            onDragStart={() => {
-              dragging.current = true;
-              setDraggingNow(true);
-              mouseLeft.set(-Infinity);
-            }}
-            onDragEnd={() => {
-              // suppress the click that follows a real drag
-              setTimeout(() => {
-                dragging.current = false;
-                setDraggingNow(false);
-              }, 0);
-            }}
-            style={{ position: 'relative' }}
-          >
+    <Reorder.Item
+      as="div"
+      ref={ref}
+      value={entry}
+      drag="x"
+      dragListener={false}
+      dragControls={dragControls}
+      onDragStart={() => {
+        dragging.current = true;
+        setDraggingNow(true);
+        mouseLeft.set(-Infinity);
+      }}
+      onDragEnd={() => {
+        // suppress the click that follows a real drag
+        setTimeout(() => {
+          dragging.current = false;
+          setDraggingNow(false);
+        }, 0);
+      }}
+      style={{ position: 'relative' }}
+    >
+      <Tooltip.Provider delayDuration={0}>
+        <Tooltip.Root open={draggingNow ? false : undefined}>
+          <Tooltip.Trigger asChild>
             <motion.button
-            ref={buttonRef}
-            onPointerDown={(e) => {
-              dragControls.start(e);
-            }}
-            style={{ x: xSpring, scale: scaleSpring, y, width: tuning.size }}
-            onClick={() => {
-              if (dragging.current) return;
-              animate(y, [0, -40, 0], {
-                repeat: 2,
-                ease: [
-                  [0, 0, 0.2, 1],
-                  [0.8, 0, 1, 1],
-                ],
-                duration: 0.7,
-              });
-              window.open(entry.href, '_blank', 'noopener');
-            }}
-            className="aspect-square block origin-bottom"
-          >
-            <MacosIcon entry={entry} alt={entry.name} />
+              ref={triggerRef}
+              onPointerDown={(e) => {
+                dragControls.start(e);
+              }}
+              onPointerEnter={() => setTriggerHovered(true)}
+              onPointerLeave={() => setTriggerHovered(false)}
+              style={{ x: xSpring, scale: scaleSpring, y, width: tuning.size }}
+              onClick={() => {
+                if (dragging.current) return;
+                animate(y, [0, -40, 0], {
+                  repeat: 2,
+                  ease: [
+                    [0, 0, 0.2, 1],
+                    [0.8, 0, 1, 1],
+                  ],
+                  duration: 0.7,
+                });
+                window.open(entry.href, '_blank', 'noopener');
+              }}
+              className="aspect-square block origin-bottom"
+            >
+              <MacosIcon entry={entry} alt={entry.name} />
             </motion.button>
-          </Reorder.Item>
-        </Tooltip.Trigger>
+          </Tooltip.Trigger>
         <Tooltip.Portal>
           <Tooltip.Content
-            sideOffset={0}
-            collisionPadding={0}
-            avoidCollisions={false}
-            style={
-              tooltipTop == null
-                ? undefined
-                : {
-                    position: 'fixed',
-                    top: tooltipTop - 10,
-                    left: tooltipCenterX,
-                    transform: 'translate(-50%, -100%)',
-                  }
-            }
+            ref={contentRef}
+            sideOffset={10}
             className="bg-neutral-100 shadow shadow-black/20 border border-black/10 dark:bg-neutral-700 dark:border-neutral-600 px-2 py-1.5 text-sm rounded text-neutral-800 dark:text-white font-medium z-50"
+            style={{
+              translate: '0 var(--tooltip-lift, 0px)',
+              visibility: triggerHovered ? 'visible' : 'hidden',
+            }}
           >
             {children}
+            <Tooltip.Arrow className="fill-neutral-100 dark:fill-neutral-700" />
           </Tooltip.Content>
         </Tooltip.Portal>
-      </Tooltip.Root>
-    </Tooltip.Provider>
+        </Tooltip.Root>
+      </Tooltip.Provider>
+    </Reorder.Item>
   );
 }
