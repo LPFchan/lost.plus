@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import Dock, { DEFAULT_TUNING, DockEntry, DockTuning } from './Dock';
-import TuningPanel from './TuningPanel';
 import heatmapIcon from './assets/raw/heatmap.png';
 import eastselfIcon from './assets/raw/eastself.jpg';
 import okdamIcon from './assets/raw/okdam.png';
@@ -46,14 +45,7 @@ const ENTRIES: DockEntry[] = [
 ];
 
 export default function App() {
-  const [tuning, setTuning] = useState<DockTuning>(() => {
-    try {
-      const saved = localStorage.getItem('dock-tuning');
-      return saved ? { ...DEFAULT_TUNING, ...JSON.parse(saved) } : DEFAULT_TUNING;
-    } catch {
-      return DEFAULT_TUNING;
-    }
-  });
+  const [tuning] = useState<DockTuning>(DEFAULT_TUNING);
 
   const [entries, setEntries] = useState<DockEntry[]>(() => {
     try {
@@ -81,17 +73,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('dock-tuning', JSON.stringify(tuning));
-  }, [tuning]);
-
-  useEffect(() => {
     localStorage.setItem('dock-order', JSON.stringify(entries.map((e) => e.name)));
   }, [entries]);
 
   return (
     <main className="flex h-full items-center justify-center">
       <Dock entries={entries} tuning={tuning} onReorder={setEntries} />
-      <TuningPanel tuning={tuning} onChange={setTuning} />
     </main>
   );
 }
