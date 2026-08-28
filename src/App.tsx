@@ -13,7 +13,12 @@ import markfopsIcon from './assets/raw/markfops.png';
 import awareIcon from './assets/raw/aware.png';
 
 const ENTRIES: DockEntry[] = [
-  { name: 'heatmap', href: 'https://heatmap.lost.plus', icon: heatmapIcon },
+  {
+    name: 'heatmap',
+    href: 'https://heatmap.lost.plus',
+    icon: heatmapIcon,
+    treatment: 'preshaped',
+  },
   { name: 'eastself', href: 'https://eastself.lost.plus', icon: eastselfIcon },
   { name: 'okdam', href: 'https://okdam.lost.plus', icon: okdamIcon },
   { name: 'gsw', href: 'https://gsw.lost.plus', icon: gswIcon },
