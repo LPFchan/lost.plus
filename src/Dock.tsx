@@ -361,7 +361,10 @@ function AppIcon({
                 });
                 window.open(entry.href, '_blank', 'noopener');
               }}
-              className="dock-icon-button aspect-square block origin-bottom"
+              className={
+                'dock-icon-button aspect-square block origin-bottom' +
+                (draggingNow ? ' pressed' : '')
+              }
             >
               <MacosIcon entry={entry} alt={entry.name} />
             </motion.button>

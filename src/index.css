@@ -114,3 +114,7 @@ body {
 .dock-icon-button:active::after {
   opacity: 1;
 }
+
+.dock-icon-button.pressed::after {
+  opacity: 1;
+}
