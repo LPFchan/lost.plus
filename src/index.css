@@ -77,7 +77,7 @@ body {
    inside the tile is derived, not chosen. */
 .macos-icon-content.treatment-tile {
   border-radius: 22%;
-  padding: 16%;
+  padding: 10%;
   background-color: var(--tile-bg, #24292f);
 }
 
