@@ -9,7 +9,7 @@ import Dock, {
 import heatmapIcon from './assets/raw/heatmap.png';
 import eastselfIcon from './assets/raw/eastself.jpg';
 import okdamIcon from './assets/raw/okdam.png';
-import gswIcon from './assets/raw/gsw.svg';
+import gswIcon from './assets/raw/gsw.png';
 import artmuIcon from './assets/raw/artmu.png';
 import artmuDarkIcon from './assets/raw/artmu-dark.png';
 import chatIcon from './assets/raw/chat.png';
