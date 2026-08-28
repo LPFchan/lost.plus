@@ -54,6 +54,10 @@ body {
 /* treatment: artwork already shaped as a macOS icon; pass through untouched */
 .macos-icon-content.treatment-preshaped {
   object-fit: contain;
+  /* pre-shaped macOS icons ship on a 1024 canvas with their own 9.375%
+     inset; scale back up so their content fills our standard content box
+     exactly like pipeline-shaped icons */
+  transform: scale(calc(16 / 13));
 }
 
 /* treatment: glyph on a colored tile (github style). The tile fills the
