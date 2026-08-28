@@ -196,7 +196,7 @@ export default function Dock({
         />
 
         {entries.map((entry) => (
-          <AppIcon key={entry.name} mouseLeft={mouseLeft} entry={entry} tuning={tuning} spring={spring} dockRect={dockRect}>
+          <AppIcon key={entry.name} mouseLeft={mouseLeft} entry={entry} tuning={tuning} spring={spring} dockRect={dockRect} zoom={zoom}>
             {entry.name}
           </AppIcon>
         ))}
@@ -231,6 +231,7 @@ function AppIcon({
   tuning,
   spring,
   dockRect,
+  zoom,
   children,
 }: {
   mouseLeft: MotionValue;
@@ -238,6 +239,7 @@ function AppIcon({
   tuning: DockTuning;
   spring: { mass: number; stiffness: number; damping: number };
   dockRect: React.RefObject<DOMRect | null>;
+  zoom: number;
   children: ReactNode;
 }) {
   // measure the button in viewport coordinates — the same space the mouse
@@ -246,16 +248,24 @@ function AppIcon({
   const ref = useRef<HTMLDivElement>(null);
 
   const distance = useTransform(() => {
+    // always read mouseLeft first: framer subscribes this transform to
+    // whichever motion values are .get() during compute, so an early return
+    // before the read would leave the transform permanently unsubscribed
+    const mouse = mouseLeft.get();
     // the Reorder.Item wrapper carries no interaction transforms (scale,
     // nudge, bounce live on the button inside), so its viewport rect marks
     // the icon's true resting position in the same coordinate space as the
     // mouse — exact under any dock zoom
     const el = ref.current;
     const dock = dockRect.current;
-    if (!el || !dock) return 0;
+    if (!el || !dock || mouse === -Infinity) return -Infinity;
     const rect = el.getBoundingClientRect();
     const iconCenterInDock = rect.left + rect.width / 2 - dock.left;
-    return mouseLeft.get() - iconCenterInDock;
+    // normalize to natural-dock pixels: the magnification curve is tuned
+    // for the unscaled dock (wide view is ground truth), so a zoomed dock
+    // divides viewport distances back down and the wave shape stays
+    // identical across window widths
+    return (mouse - iconCenterInDock) / zoom;
   });
 
   const scale = useTransform(
