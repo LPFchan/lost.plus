@@ -187,7 +187,10 @@ function AppIcon({
   spring: { mass: number; stiffness: number; damping: number };
   children: ReactNode;
 }) {
-  const ref = useRef<HTMLButtonElement>(null);
+  // measure the Reorder.Item wrapper: it is the layout element the group's
+  // reorder animations move, so its offsetLeft always reflects the true
+  // resting position (the button inside also carries drag/click transforms)
+  const ref = useRef<HTMLDivElement>(null);
 
   const distance = useTransform(() => {
     const bounds = ref.current
@@ -226,6 +229,7 @@ function AppIcon({
         <Tooltip.Trigger asChild>
           <Reorder.Item
             as="div"
+            ref={ref}
             value={entry}
             drag="x"
             dragListener={false}
@@ -245,7 +249,6 @@ function AppIcon({
             style={{ position: 'relative' }}
           >
             <motion.button
-            ref={ref}
             onPointerDown={(e) => {
               dragControls.start(e);
             }}
