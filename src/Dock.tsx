@@ -147,6 +147,10 @@ export default function Dock({
   // reserve room inside the clip boundary so nothing is ever visually cut,
   // while the boundary itself stops the page from becoming scrollable
   const overflowReserve = dockOverflowReserve(tuning);
+  // current dock rect in viewport coordinates, refreshed on every mousemove;
+  // icons measure themselves against the same rect so zoom can't skew the
+  // magnification distance math
+  const dockRect = useRef<DOMRect | null>(null);
 
   return (
     <>
@@ -165,7 +169,9 @@ export default function Dock({
         values={entries}
         onReorder={onReorder}
         onMouseMove={(e) => {
-          const { left, right } = e.currentTarget.getBoundingClientRect();
+          const rect = e.currentTarget.getBoundingClientRect();
+          dockRect.current = rect;
+          const { left, right } = rect;
           const offsetLeft = e.clientX - left;
           const offsetRight = right - e.clientX;
           mouseLeft.set(offsetLeft);
@@ -190,7 +196,7 @@ export default function Dock({
         />
 
         {entries.map((entry) => (
-          <AppIcon key={entry.name} mouseLeft={mouseLeft} entry={entry} tuning={tuning} spring={spring}>
+          <AppIcon key={entry.name} mouseLeft={mouseLeft} entry={entry} tuning={tuning} spring={spring} dockRect={dockRect}>
             {entry.name}
           </AppIcon>
         ))}
@@ -224,25 +230,32 @@ function AppIcon({
   entry,
   tuning,
   spring,
+  dockRect,
   children,
 }: {
   mouseLeft: MotionValue;
   entry: DockEntry;
   tuning: DockTuning;
   spring: { mass: number; stiffness: number; damping: number };
+  dockRect: React.RefObject<DOMRect | null>;
   children: ReactNode;
 }) {
-  // measure the Reorder.Item wrapper: it is the layout element the group's
-  // reorder animations move, so its offsetLeft always reflects the true
-  // resting position (the button inside also carries drag/click transforms)
+  // measure the button in viewport coordinates — the same space the mouse
+  // position is reported in — so the distance math stays exact even when
+  // the whole dock is zoomed by a CSS transform
   const ref = useRef<HTMLDivElement>(null);
 
   const distance = useTransform(() => {
-    const bounds = ref.current
-      ? { x: ref.current.offsetLeft, width: ref.current.offsetWidth }
-      : { x: 0, width: 0 };
-
-    return mouseLeft.get() - bounds.x - bounds.width / 2;
+    // the Reorder.Item wrapper carries no interaction transforms (scale,
+    // nudge, bounce live on the button inside), so its viewport rect marks
+    // the icon's true resting position in the same coordinate space as the
+    // mouse — exact under any dock zoom
+    const el = ref.current;
+    const dock = dockRect.current;
+    if (!el || !dock) return 0;
+    const rect = el.getBoundingClientRect();
+    const iconCenterInDock = rect.left + rect.width / 2 - dock.left;
+    return mouseLeft.get() - iconCenterInDock;
   });
 
   const scale = useTransform(
