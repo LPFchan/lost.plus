@@ -121,6 +121,9 @@ export default function Dock({
   const rightSpring = useSpring(right, spring);
   const tray = trayGeometry(tuning);
   const naturalWidth = dockNaturalWidth(entries.length, tuning);
+  // magnification grows icons upward/outward beyond the dock's layout box;
+  // without clipping-x the page becomes horizontally scrollable
+  const overflowReserve = Math.ceil((tuning.size * (tuning.scale - 1)) / 2) + tuning.nudge;
 
   return (
     <>
@@ -129,6 +132,12 @@ export default function Dock({
         style={{
           width: naturalWidth * zoom,
           height: tray.height * zoom,
+          overflowX: 'clip',
+          overflowY: 'visible',
+          paddingLeft: overflowReserve,
+          paddingRight: overflowReserve,
+          marginLeft: -overflowReserve,
+          marginRight: -overflowReserve,
         }}
       >
       <Reorder.Group

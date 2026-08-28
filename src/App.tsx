@@ -10,7 +10,7 @@ import eastselfIcon from './assets/raw/eastself.jpg';
 import okdamIcon from './assets/raw/okdam.png';
 import gswIcon from './assets/raw/gsw.svg';
 import artmuIcon from './assets/raw/artmu.png';
-import chatIcon from './assets/raw/chat.svg';
+import chatIcon from './assets/raw/chat.png';
 import setupIcon from './assets/raw/setup.png';
 import githubIcon from './assets/raw/github-mark.svg';
 import markfopsIcon from './assets/raw/markfops.png';
