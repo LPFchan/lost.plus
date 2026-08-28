@@ -8,17 +8,26 @@ used verbatim.
 
 ## Icons
 
-Drop a **raw rectangular image** (png/jpg/svg) into `src/assets/raw/` and
-import it in `src/App.tsx`. The macOS treatment is baked into the site's CSS
-(`.macos-icon` in `src/index.css`), using the geometry from
+Drop a **raw rectangular image** (png/jpg/svg) into `src/assets/raw/` and add an
+entry in `src/App.tsx`. Every dock icon goes through a single CSS pipeline
+(`.macos-icon` in `src/index.css`) that owns the macOS geometry from
 [sundegan/macos-icon-generator](https://github.com/sundegan/macos-icon-generator):
 
 - content is 13/16 of the canvas (`padding: 9.375%`, symmetric on all sides)
 - corner radius is 22% of the content (`border-radius: 22%`)
 - soft drop shadow via `filter: drop-shadow(...)`
-- non-square sources are cover-fit and center-cropped (`object-fit: cover`)
 
-No preprocessing step is needed — the CSS pipeline does everything.
+Geometry is never per-icon. Each entry only picks a **treatment** for its
+content inside the standard canvas:
+
+| treatment    | use for | what happens |
+| ------------ | ------- | ------------ |
+| `cover` (default) | raw rectangular artwork | cover-fit, center-cropped, rounded |
+| `preshaped`  | artwork that is already a finished macOS icon | passed through untouched |
+| `tile`       | a glyph (e.g. the github octocat) | placed on a colored rounded tile; tile fills the standard content box, glyph scale is derived |
+
+Because sizing lives in exactly one place, it is impossible for one icon to
+come out bigger or smaller than another.
 
 ## Develop
 

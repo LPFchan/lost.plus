@@ -25,48 +25,54 @@ body {
   background-color: #131315;
 }
 
-/* macOS-style app icon, math from
-   https://github.com/sundegan/macos-icon-generator:
-   content is 13/16 of the canvas (symmetric padding), corner radius is
-   22% of the content size, plus a soft drop shadow.
-   Input is a raw rectangular image; the pipeline does the rest. */
+/* macOS icon pipeline — every dock icon goes through this, no exceptions.
+   Geometry from https://github.com/sundegan/macos-icon-generator:
+   canvas inset (1 - 13/16)/2 = 9.375%, corner radius 22% of the content,
+   soft drop shadow. Per-icon config only picks the *treatment* of the
+   content inside the standard canvas; geometry is never per-icon. */
+
 .macos-icon {
   display: block;
   width: 100%;
   height: 100%;
-  padding: 9.375%; /* (1 - 13/16) / 2 */
+  padding: 9.375%;
   filter: drop-shadow(0 0.15em 0.3em rgb(0 0 0 / 0.28));
 }
 
-.macos-icon > img {
+.macos-icon-content {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover; /* scale to cover, center-crop overflow */
+}
+
+/* treatment: raw rectangular image, cover-cropped + rounded by the pipeline */
+.macos-icon-content.treatment-cover {
+  object-fit: cover;
   border-radius: 22%;
 }
 
-/* github octocat sits on a solid tile like the macOS GitHub-desktop style */
-.macos-icon-github {
-  background-color: #24292f;
+/* treatment: artwork already shaped as a macOS icon; pass through untouched */
+.macos-icon-content.treatment-preshaped {
+  object-fit: contain;
+}
+
+/* treatment: glyph on a colored tile (github style). The tile fills the
+   standard content box and takes the standard 22% radius; the glyph scale
+   inside the tile is derived, not chosen. */
+.macos-icon-content.treatment-tile {
   border-radius: 22%;
+  padding: 16%;
+  background-color: var(--tile-bg, #24292f);
+}
+
+.macos-icon-content.treatment-tile > img {
   display: block;
   width: 100%;
   height: 100%;
-  padding: 14%;
+  filter: var(--tile-glyph-filter, invert(1));
 }
 
-.macos-icon-github > img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  filter: invert(1);
-}
-
-.dark .macos-icon-github > img {
-  filter: none;
-}
-
-.dark .macos-icon-github {
-  background-color: #e6e2dc;
+.dark .macos-icon-content.treatment-tile {
+  --tile-bg: #e6e2dc;
+  --tile-glyph-filter: none;
 }

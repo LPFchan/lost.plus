@@ -40,11 +40,34 @@ export type DockEntry = {
   name: string;
   href: string;
   icon: string;
-  /** icon already has macOS treatment baked in — skip the CSS pipeline */
-  preShaped?: boolean;
-  /** white glyph on a dark rounded tile (github style), flips in dark mode */
-  githubTile?: boolean;
+  /**
+   * How the artwork is treated inside the standard macOS icon canvas.
+   * - cover:     raw rectangular image; pipeline crops and rounds it
+   * - preshaped: artwork is already a finished macOS icon; passed through
+   * - tile:      glyph on a colored rounded tile (github style)
+   * Geometry (inset, radius, shadow) is owned by the pipeline and can never
+   * vary per icon — only the treatment of its content.
+   */
+  treatment?: 'cover' | 'preshaped' | 'tile';
 };
+
+function MacosIcon({ entry, alt }: { entry: DockEntry; alt: string }) {
+  const treatment = entry.treatment ?? 'cover';
+  const content =
+    treatment === 'tile' ? (
+      <span className="macos-icon-content treatment-tile">
+        <img src={entry.icon} alt={alt} draggable={false} />
+      </span>
+    ) : (
+      <img
+        src={entry.icon}
+        alt={alt}
+        draggable={false}
+        className={'macos-icon-content treatment-' + treatment}
+      />
+    );
+  return <span className="macos-icon select-none">{content}</span>;
+}
 
 export default function Dock({
   entries,
@@ -106,24 +129,7 @@ export default function Dock({
               className="aspect-square flex-shrink-0"
               style={{ width: tuning.size }}
             >
-              {entry.githubTile ? (
-                <span className="macos-icon macos-icon-github">
-                  <img src={entry.icon} alt="" draggable={false} />
-                </span>
-              ) : entry.preShaped ? (
-                <span className="block h-full w-full">
-                  <img
-                    src={entry.icon}
-                    alt=""
-                    draggable={false}
-                    className="h-full w-full"
-                  />
-                </span>
-              ) : (
-                <span className="macos-icon">
-                  <img src={entry.icon} alt="" draggable={false} />
-                </span>
-              )}
+              <MacosIcon entry={entry} alt="" />
             </a>
           ))}
         </div>
@@ -199,24 +205,7 @@ function AppIcon({
             }}
             className="aspect-square block origin-bottom"
           >
-            {entry.githubTile ? (
-              <span className="macos-icon macos-icon-github select-none">
-                <img src={entry.icon} alt={entry.name} draggable={false} />
-              </span>
-            ) : entry.preShaped ? (
-              <span className="block h-full w-full select-none">
-                <img
-                  src={entry.icon}
-                  alt={entry.name}
-                  draggable={false}
-                  className="h-full w-full"
-                />
-              </span>
-            ) : (
-              <span className="macos-icon select-none">
-                <img src={entry.icon} alt={entry.name} draggable={false} />
-              </span>
-            )}
+            <MacosIcon entry={entry} alt={entry.name} />
           </motion.button>
         </Tooltip.Trigger>
         <Tooltip.Portal>

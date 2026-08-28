@@ -24,19 +24,19 @@ const ENTRIES: DockEntry[] = [
     name: 'github',
     href: 'https://github.com/LPFchan',
     icon: githubIcon,
-    githubTile: true,
+    treatment: 'tile',
   },
   {
     name: 'markfops',
     href: 'https://github.com/LPFchan/Markfops',
     icon: markfopsIcon,
-    preShaped: true,
+    treatment: 'preshaped',
   },
   {
     name: 'aware',
     href: 'https://github.com/LPFchan/Aware',
     icon: awareIcon,
-    preShaped: true,
+    treatment: 'preshaped',
   },
 ];
 
