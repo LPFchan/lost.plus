@@ -55,6 +55,23 @@ export default function App() {
     }
   });
 
+  const [entries, setEntries] = useState<DockEntry[]>(() => {
+    try {
+      const saved: string[] = JSON.parse(
+        localStorage.getItem('dock-order') ?? 'null',
+      );
+      if (!Array.isArray(saved)) return ENTRIES;
+      const ordered = saved
+        .map((name) => ENTRIES.find((e) => e.name === name))
+        .filter((e): e is DockEntry => Boolean(e));
+      // entries added since the order was saved go at the end
+      const missing = ENTRIES.filter((e) => !saved.includes(e.name));
+      return [...ordered, ...missing];
+    } catch {
+      return ENTRIES;
+    }
+  });
+
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const apply = () => document.documentElement.classList.toggle('dark', mq.matches);
@@ -67,9 +84,13 @@ export default function App() {
     localStorage.setItem('dock-tuning', JSON.stringify(tuning));
   }, [tuning]);
 
+  useEffect(() => {
+    localStorage.setItem('dock-order', JSON.stringify(entries.map((e) => e.name)));
+  }, [entries]);
+
   return (
     <main className="flex h-full items-center justify-center">
-      <Dock entries={ENTRIES} tuning={tuning} />
+      <Dock entries={entries} tuning={tuning} onReorder={setEntries} />
       <TuningPanel tuning={tuning} onChange={setTuning} />
     </main>
   );

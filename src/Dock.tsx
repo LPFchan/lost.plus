@@ -6,13 +6,15 @@
 import * as Tooltip from '@radix-ui/react-tooltip';
 import {
   MotionValue,
+  Reorder,
   animate,
   motion,
+  useDragControls,
   useMotionValue,
   useSpring,
   useTransform,
 } from 'framer-motion';
-import { ReactNode, useMemo, useRef } from 'react';
+import { ReactNode, useMemo, useRef, useState } from 'react';
 
 export type DockTuning = {
   size: number; // resting icon width in px
@@ -91,9 +93,11 @@ function MacosIcon({ entry, alt }: { entry: DockEntry; alt: string }) {
 export default function Dock({
   entries,
   tuning,
+  onReorder,
 }: {
   entries: DockEntry[];
   tuning: DockTuning;
+  onReorder: (entries: DockEntry[]) => void;
 }) {
   const mouseLeft = useMotionValue(-Infinity);
   const mouseRight = useMotionValue(-Infinity);
@@ -109,7 +113,11 @@ export default function Dock({
 
   return (
     <>
-      <motion.div
+      <Reorder.Group
+        as="div"
+        axis="x"
+        values={entries}
+        onReorder={onReorder}
         onMouseMove={(e) => {
           const { left, right } = e.currentTarget.getBoundingClientRect();
           const offsetLeft = e.clientX - left;
@@ -134,7 +142,7 @@ export default function Dock({
             {entry.name}
           </AppIcon>
         ))}
-      </motion.div>
+      </Reorder.Group>
 
       <div className="sm:hidden">
         <div
@@ -208,15 +216,43 @@ function AppIcon({
   const scaleSpring = useSpring(scale, spring);
   const xSpring = useSpring(x, spring);
   const y = useMotionValue(0);
+  const dragging = useRef(false);
+  const dragControls = useDragControls();
+  const [draggingNow, setDraggingNow] = useState(false);
 
   return (
     <Tooltip.Provider delayDuration={0}>
-      <Tooltip.Root>
+      <Tooltip.Root open={draggingNow ? false : undefined}>
         <Tooltip.Trigger asChild>
-          <motion.button
+          <Reorder.Item
+            as="div"
+            value={entry}
+            drag="x"
+            dragListener={false}
+            dragControls={dragControls}
+            onDragStart={() => {
+              dragging.current = true;
+              setDraggingNow(true);
+              mouseLeft.set(-Infinity);
+              mouseRight.set(-Infinity);
+            }}
+            onDragEnd={() => {
+              // suppress the click that follows a real drag
+              setTimeout(() => {
+                dragging.current = false;
+                setDraggingNow(false);
+              }, 0);
+            }}
+            style={{ position: 'relative' }}
+          >
+            <motion.button
             ref={ref}
+            onPointerDown={(e) => {
+              dragControls.start(e);
+            }}
             style={{ x: xSpring, scale: scaleSpring, y, width: tuning.size }}
             onClick={() => {
+              if (dragging.current) return;
               animate(y, [0, -40, 0], {
                 repeat: 2,
                 ease: [
@@ -230,7 +266,8 @@ function AppIcon({
             className="aspect-square block origin-bottom"
           >
             <MacosIcon entry={entry} alt={entry.name} />
-          </motion.button>
+            </motion.button>
+          </Reorder.Item>
         </Tooltip.Trigger>
         <Tooltip.Portal>
           <Tooltip.Content
