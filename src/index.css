@@ -45,3 +45,28 @@ body {
   object-fit: cover; /* scale to cover, center-crop overflow */
   border-radius: 22%;
 }
+
+/* github octocat sits on a solid tile like the macOS GitHub-desktop style */
+.macos-icon-github {
+  background-color: #24292f;
+  border-radius: 22%;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 14%;
+}
+
+.macos-icon-github > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: invert(1);
+}
+
+.dark .macos-icon-github > img {
+  filter: none;
+}
+
+.dark .macos-icon-github {
+  background-color: #e6e2dc;
+}

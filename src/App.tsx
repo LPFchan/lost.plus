@@ -8,6 +8,9 @@ import gswIcon from './assets/raw/gsw.svg';
 import artmuIcon from './assets/raw/artmu.png';
 import chatIcon from './assets/raw/chat.svg';
 import setupIcon from './assets/raw/setup.png';
+import githubIcon from './assets/raw/github-mark.svg';
+import markfopsIcon from './assets/raw/markfops.png';
+import awareIcon from './assets/raw/aware.png';
 
 const ENTRIES: DockEntry[] = [
   { name: 'heatmap', href: 'https://heatmap.lost.plus', icon: heatmapIcon },
@@ -17,6 +20,24 @@ const ENTRIES: DockEntry[] = [
   { name: 'artmu', href: 'https://artmu.lost.plus', icon: artmuIcon },
   { name: 'chat', href: 'https://chat.lost.plus', icon: chatIcon },
   { name: 'setup', href: 'https://setup.lost.plus', icon: setupIcon },
+  {
+    name: 'github',
+    href: 'https://github.com/LPFchan',
+    icon: githubIcon,
+    githubTile: true,
+  },
+  {
+    name: 'markfops',
+    href: 'https://github.com/LPFchan/Markfops',
+    icon: markfopsIcon,
+    preShaped: true,
+  },
+  {
+    name: 'aware',
+    href: 'https://github.com/LPFchan/Aware',
+    icon: awareIcon,
+    preShaped: true,
+  },
 ];
 
 export default function App() {
