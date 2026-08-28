@@ -310,7 +310,7 @@ function AppIcon({
             }}
           >
             {children}
-            <Tooltip.Arrow className="fill-neutral-100 dark:fill-neutral-700" />
+            <Tooltip.Arrow className="fill-neutral-100 drop-shadow-sm dark:fill-neutral-700" />
           </Tooltip.Content>
         </Tooltip.Portal>
         </Tooltip.Root>
