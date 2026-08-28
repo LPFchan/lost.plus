@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #f6f5f2;
+}
+
+.dark body {
+  background-color: #131315;
+}
+
+/* macOS-style app icon, math from
+   https://github.com/sundegan/macos-icon-generator:
+   content is 13/16 of the canvas (symmetric padding), corner radius is
+   22% of the content size, plus a soft drop shadow.
+   Input is a raw rectangular image; the pipeline does the rest. */
+.macos-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 9.375%; /* (1 - 13/16) / 2 */
+  filter: drop-shadow(0 0.15em 0.3em rgb(0 0 0 / 0.28));
+}
+
+.macos-icon > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* scale to cover, center-crop overflow */
+  border-radius: 22%;
+}
