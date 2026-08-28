@@ -92,3 +92,25 @@ body {
   --tile-bg: #e6e2dc;
   --tile-glyph-filter: none;
 }
+
+/* pressed state: black 20% mask over the icon's rounded silhouette while
+   the pointer is held down, like the macOS dock. the button owns the same
+   canvas inset (9.375%) and corner radius (22% of the content box) as the
+   icon pipeline, so the overlay follows the icon shape exactly. */
+.dock-icon-button {
+  position: relative;
+}
+
+.dock-icon-button::after {
+  content: '';
+  position: absolute;
+  inset: 9.375%;
+  border-radius: 22%;
+  background-color: rgb(0 0 0 / 0.2);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dock-icon-button:active::after {
+  opacity: 1;
+}
