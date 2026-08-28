@@ -13,23 +13,21 @@ import awareIcon from './assets/raw/aware.png';
 
 const ENTRIES: DockEntry[] = [
   {
-    name: 'heatmap',
-    href: 'https://heatmap.lost.plus',
-    icon: heatmapIcon,
-    treatment: 'preshaped',
-  },
-  { name: 'eastself', href: 'https://eastself.lost.plus', icon: eastselfIcon },
-  { name: 'okdam', href: 'https://okdam.lost.plus', icon: okdamIcon },
-  { name: 'gsw', href: 'https://gsw.lost.plus', icon: gswIcon },
-  { name: 'artmu', href: 'https://artmu.lost.plus', icon: artmuIcon },
-  { name: 'chat', href: 'https://chat.lost.plus', icon: chatIcon },
-  { name: 'setup', href: 'https://setup.lost.plus', icon: setupIcon },
-  {
     name: 'github',
     href: 'https://github.com/LPFchan',
     icon: githubIcon,
     treatment: 'tile',
   },
+  {
+    name: 'heatmap',
+    href: 'https://heatmap.lost.plus',
+    icon: heatmapIcon,
+    treatment: 'preshaped',
+  },
+  { name: 'okdam', href: 'https://okdam.lost.plus', icon: okdamIcon },
+  { name: 'gsw', href: 'https://gsw.lost.plus', icon: gswIcon },
+  { name: 'setup', href: 'https://setup.lost.plus', icon: setupIcon },
+  { name: 'chat', href: 'https://chat.lost.plus', icon: chatIcon },
   {
     name: 'markfops',
     href: 'https://github.com/LPFchan/Markfops',
@@ -42,6 +40,8 @@ const ENTRIES: DockEntry[] = [
     icon: awareIcon,
     treatment: 'preshaped',
   },
+  { name: 'artmu', href: 'https://artmu.lost.plus', icon: artmuIcon },
+  { name: 'eastself', href: 'https://eastself.lost.plus', icon: eastselfIcon },
 ];
 
 export default function App() {
@@ -49,14 +49,13 @@ export default function App() {
 
   const [entries, setEntries] = useState<DockEntry[]>(() => {
     try {
-      const saved: string[] = JSON.parse(
-        localStorage.getItem('dock-order') ?? 'null',
-      );
+      // bump the version whenever the default order changes, so visitors
+      // with a stale saved order get the new default
+      const saved = JSON.parse(localStorage.getItem('dock-order-v2') ?? 'null');
       if (!Array.isArray(saved)) return ENTRIES;
       const ordered = saved
         .map((name) => ENTRIES.find((e) => e.name === name))
         .filter((e): e is DockEntry => Boolean(e));
-      // entries added since the order was saved go at the end
       const missing = ENTRIES.filter((e) => !saved.includes(e.name));
       return [...ordered, ...missing];
     } catch {
@@ -73,7 +72,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('dock-order', JSON.stringify(entries.map((e) => e.name)));
+    localStorage.setItem('dock-order-v2', JSON.stringify(entries.map((e) => e.name)));
   }, [entries]);
 
   return (
