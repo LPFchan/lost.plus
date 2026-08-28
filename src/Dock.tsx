@@ -73,6 +73,12 @@ function trayGeometry(tuning: DockTuning) {
   };
 }
 
+/** natural (unzoomed) dock width: icons + gaps + tray padding on both sides */
+export function dockNaturalWidth(entries: number, tuning: DockTuning): number {
+  const tray = trayGeometry(tuning);
+  return entries * tuning.size + (entries - 1) * tuning.gap + tray.padding * 2;
+}
+
 function MacosIcon({ entry, alt }: { entry: DockEntry; alt: string }) {
   const treatment = entry.treatment ?? 'cover';
   const content =
@@ -95,10 +101,13 @@ export default function Dock({
   entries,
   tuning,
   onReorder,
+  zoom = 1,
 }: {
   entries: DockEntry[];
   tuning: DockTuning;
   onReorder: (entries: DockEntry[]) => void;
+  /** whole-dock scale factor for the fit-to-width regime (A < width < B) */
+  zoom?: number;
 }) {
   const mouseLeft = useMotionValue(-Infinity);
   const mouseRight = useMotionValue(-Infinity);
@@ -111,9 +120,17 @@ export default function Dock({
   const leftSpring = useSpring(left, spring);
   const rightSpring = useSpring(right, spring);
   const tray = trayGeometry(tuning);
+  const naturalWidth = dockNaturalWidth(entries.length, tuning);
 
   return (
     <>
+      <div
+        className="hidden min-[480px]:block"
+        style={{
+          width: naturalWidth * zoom,
+          height: tray.height * zoom,
+        }}
+      >
       <Reorder.Group
         as="div"
         axis="x"
@@ -130,8 +147,14 @@ export default function Dock({
           mouseLeft.set(-Infinity);
           mouseRight.set(-Infinity);
         }}
-        className="mx-auto hidden items-end sm:flex relative"
-        style={{ gap: tuning.gap, height: tray.height, padding: tray.padding }}
+        className="mx-auto flex items-end relative origin-center"
+        style={{
+          gap: tuning.gap,
+          height: tray.height,
+          padding: tray.padding,
+          width: naturalWidth,
+          transform: `scale(${zoom})`,
+        }}
       >
         <motion.div
           className="absolute inset-y-0 bg-white/60 dark:bg-neutral-800/60 border border-black/10 dark:border-white/10 -z-10 backdrop-blur-md"
@@ -144,32 +167,25 @@ export default function Dock({
           </AppIcon>
         ))}
       </Reorder.Group>
+      </div>
 
-      <div className="sm:hidden">
-        <div
-          className="mx-auto flex max-w-full items-end gap-4 overflow-x-scroll bg-white/60 dark:bg-neutral-800/60 border border-black/10 dark:border-white/10 backdrop-blur-md sm:hidden"
-          style={{
-            height: tray.height,
-            padding: tray.padding,
-            borderRadius: tray.radius,
-          }}
-        >
+      <div className="min-[480px]:hidden">
+        <div className="mx-auto grid w-full max-w-sm grid-cols-3 gap-x-2 gap-y-6 rounded-[2rem] bg-white/60 dark:bg-neutral-800/60 border border-black/10 dark:border-white/10 backdrop-blur-md p-6">
           {entries.map((entry) => (
             <a
               key={entry.name}
               href={entry.href}
-              aria-label={entry.name}
-              className="aspect-square flex-shrink-0"
-              style={{ width: tuning.size }}
+              className="flex flex-col items-center gap-1.5"
             >
-              <MacosIcon entry={entry} alt="" />
+              <span className="aspect-square w-full max-w-20">
+                <MacosIcon entry={entry} alt="" />
+              </span>
+              <span className="text-xs font-medium text-neutral-700 dark:text-neutral-200">
+                {entry.name}
+              </span>
             </a>
           ))}
         </div>
-        <p className="mt-4 text-center text-xs font-medium text-neutral-400 dark:text-neutral-500">
-          View at 640px with a mouse
-          <br /> to see the interaction.
-        </p>
       </div>
     </>
   );

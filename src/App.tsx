@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
-import Dock, { DEFAULT_TUNING, DockEntry, DockTuning } from './Dock';
+import Dock, {
+  DEFAULT_TUNING,
+  DockEntry,
+  DockTuning,
+  dockNaturalWidth,
+} from './Dock';
 import heatmapIcon from './assets/raw/heatmap.png';
 import eastselfIcon from './assets/raw/eastself.jpg';
 import okdamIcon from './assets/raw/okdam.png';
@@ -75,9 +80,23 @@ export default function App() {
     localStorage.setItem('dock-order-v2', JSON.stringify(entries.map((e) => e.name)));
   }, [entries]);
 
+  // three layout regimes by window width:
+  //   < 640px (threshold A): iOS-springboard folder grid
+  //   A..B:                  macOS dock, zoomed to fit the window
+  //   > B (natural width):   macOS dock at its natural size
+  const [zoom, setZoom] = useState(1);
+  useEffect(() => {
+    const natural = dockNaturalWidth(ENTRIES.length, tuning) + 32; // breathing room
+    const onResize = () =>
+      setZoom(Math.min(1, (window.innerWidth - 16) / natural));
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [tuning]);
+
   return (
     <main className="flex h-full items-center justify-center">
-      <Dock entries={entries} tuning={tuning} onReorder={setEntries} />
+      <Dock entries={entries} tuning={tuning} onReorder={setEntries} zoom={zoom} />
     </main>
   );
 }
