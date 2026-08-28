@@ -12,12 +12,25 @@ import {
   useSpring,
   useTransform,
 } from 'framer-motion';
-import { ReactNode, useRef } from 'react';
+import { ReactNode, useMemo, useRef } from 'react';
 
-const SCALE = 2.25; // max scale factor of an icon
-const DISTANCE = 110; // pixels before mouse affects an icon
-const NUDGE = 40; // pixels icons are moved away from mouse
-const SPRING = {
+export type DockTuning = {
+  size: number; // resting icon width in px
+  gap: number; // spacing between icons in px
+  scale: number; // max scale factor of an icon
+  distance: number; // pixels before mouse affects an icon
+  nudge: number; // pixels icons are moved away from mouse
+  mass: number;
+  stiffness: number;
+  damping: number;
+};
+
+export const DEFAULT_TUNING: DockTuning = {
+  size: 40,
+  gap: 12,
+  scale: 2.25,
+  distance: 110,
+  nudge: 40,
   mass: 0.1,
   stiffness: 170,
   damping: 12,
@@ -29,13 +42,23 @@ export type DockEntry = {
   icon: string;
 };
 
-export default function Dock({ entries }: { entries: DockEntry[] }) {
+export default function Dock({
+  entries,
+  tuning,
+}: {
+  entries: DockEntry[];
+  tuning: DockTuning;
+}) {
   const mouseLeft = useMotionValue(-Infinity);
   const mouseRight = useMotionValue(-Infinity);
+  const spring = useMemo(
+    () => ({ mass: tuning.mass, stiffness: tuning.stiffness, damping: tuning.damping }),
+    [tuning.mass, tuning.stiffness, tuning.damping],
+  );
   const left = useTransform(mouseLeft, [0, 40], [0, -40]);
   const right = useTransform(mouseRight, [0, 40], [0, -40]);
-  const leftSpring = useSpring(left, SPRING);
-  const rightSpring = useSpring(right, SPRING);
+  const leftSpring = useSpring(left, spring);
+  const rightSpring = useSpring(right, spring);
 
   return (
     <>
@@ -51,7 +74,8 @@ export default function Dock({ entries }: { entries: DockEntry[] }) {
           mouseLeft.set(-Infinity);
           mouseRight.set(-Infinity);
         }}
-        className="mx-auto hidden h-16 items-end gap-3 px-2 pb-3 sm:flex relative"
+        className="mx-auto hidden items-end px-2 pb-3 sm:flex relative"
+        style={{ gap: tuning.gap, height: tuning.size + 24 }}
       >
         <motion.div
           className="absolute rounded-2xl inset-y-0 bg-white/60 dark:bg-neutral-800/60 border border-black/10 dark:border-white/10 -z-10 backdrop-blur-md"
@@ -59,20 +83,24 @@ export default function Dock({ entries }: { entries: DockEntry[] }) {
         />
 
         {entries.map((entry) => (
-          <AppIcon key={entry.name} mouseLeft={mouseLeft} entry={entry}>
+          <AppIcon key={entry.name} mouseLeft={mouseLeft} entry={entry} tuning={tuning} spring={spring}>
             {entry.name}
           </AppIcon>
         ))}
       </motion.div>
 
       <div className="sm:hidden">
-        <div className="mx-auto flex h-16 max-w-full items-end gap-4 overflow-x-scroll rounded-2xl bg-white/60 dark:bg-neutral-800/60 border border-black/10 dark:border-white/10 backdrop-blur-md px-4 pb-3 sm:hidden">
+        <div
+          className="mx-auto flex max-w-full items-end gap-4 overflow-x-scroll rounded-2xl bg-white/60 dark:bg-neutral-800/60 border border-black/10 dark:border-white/10 backdrop-blur-md px-4 pb-3 sm:hidden"
+          style={{ height: tuning.size + 24 }}
+        >
           {entries.map((entry) => (
             <a
               key={entry.name}
               href={entry.href}
               aria-label={entry.name}
-              className="aspect-square w-10 flex-shrink-0"
+              className="aspect-square flex-shrink-0"
+              style={{ width: tuning.size }}
             >
               <span className="macos-icon">
                 <img src={entry.icon} alt="" draggable={false} />
@@ -92,10 +120,14 @@ export default function Dock({ entries }: { entries: DockEntry[] }) {
 function AppIcon({
   mouseLeft,
   entry,
+  tuning,
+  spring,
   children,
 }: {
   mouseLeft: MotionValue;
   entry: DockEntry;
+  tuning: DockTuning;
+  spring: { mass: number; stiffness: number; damping: number };
   children: ReactNode;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
@@ -108,20 +140,24 @@ function AppIcon({
     return mouseLeft.get() - bounds.x - bounds.width / 2;
   });
 
-  const scale = useTransform(distance, [-DISTANCE, 0, DISTANCE], [1, SCALE, 1]);
+  const scale = useTransform(
+    distance,
+    [-tuning.distance, 0, tuning.distance],
+    [1, tuning.scale, 1],
+  );
   const x = useTransform(() => {
     const d = distance.get();
     if (d === -Infinity) {
       return 0;
-    } else if (d < -DISTANCE || d > DISTANCE) {
-      return Math.sign(d) * -1 * NUDGE;
+    } else if (d < -tuning.distance || d > tuning.distance) {
+      return Math.sign(d) * -1 * tuning.nudge;
     } else {
-      return (-d / DISTANCE) * NUDGE * scale.get();
+      return (-d / tuning.distance) * tuning.nudge * scale.get();
     }
   });
 
-  const scaleSpring = useSpring(scale, SPRING);
-  const xSpring = useSpring(x, SPRING);
+  const scaleSpring = useSpring(scale, spring);
+  const xSpring = useSpring(x, spring);
   const y = useMotionValue(0);
 
   return (
@@ -130,7 +166,7 @@ function AppIcon({
         <Tooltip.Trigger asChild>
           <motion.button
             ref={ref}
-            style={{ x: xSpring, scale: scaleSpring, y }}
+            style={{ x: xSpring, scale: scaleSpring, y, width: tuning.size }}
             onClick={() => {
               animate(y, [0, -40, 0], {
                 repeat: 2,
@@ -142,7 +178,7 @@ function AppIcon({
               });
               window.open(entry.href, '_blank', 'noopener');
             }}
-            className="aspect-square block w-10 origin-bottom"
+            className="aspect-square block origin-bottom"
           >
             <span className="macos-icon select-none">
               <img src={entry.icon} alt={entry.name} draggable={false} />

@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
-import Dock, { DockEntry } from './Dock';
+import { useEffect, useState } from 'react';
+import Dock, { DEFAULT_TUNING, DockEntry, DockTuning } from './Dock';
+import TuningPanel from './TuningPanel';
 import heatmapIcon from './assets/raw/heatmap.png';
 import eastselfIcon from './assets/raw/eastself.jpg';
 import okdamIcon from './assets/raw/okdam.png';
@@ -19,6 +20,15 @@ const ENTRIES: DockEntry[] = [
 ];
 
 export default function App() {
+  const [tuning, setTuning] = useState<DockTuning>(() => {
+    try {
+      const saved = localStorage.getItem('dock-tuning');
+      return saved ? { ...DEFAULT_TUNING, ...JSON.parse(saved) } : DEFAULT_TUNING;
+    } catch {
+      return DEFAULT_TUNING;
+    }
+  });
+
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const apply = () => document.documentElement.classList.toggle('dark', mq.matches);
@@ -27,9 +37,14 @@ export default function App() {
     return () => mq.removeEventListener('change', apply);
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('dock-tuning', JSON.stringify(tuning));
+  }, [tuning]);
+
   return (
     <main className="flex h-full items-center justify-center">
-      <Dock entries={ENTRIES} />
+      <Dock entries={ENTRIES} tuning={tuning} />
+      <TuningPanel tuning={tuning} onChange={setTuning} />
     </main>
   );
 }
