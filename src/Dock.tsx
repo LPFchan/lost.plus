@@ -303,14 +303,14 @@ function AppIcon({
           <Tooltip.Content
             ref={contentRef}
             sideOffset={10}
-            className="bg-neutral-100 shadow shadow-black/20 border border-black/10 dark:bg-neutral-700 dark:border-neutral-600 px-2 py-1.5 text-sm rounded text-neutral-800 dark:text-white font-medium z-50"
+            className="relative z-50 rounded border border-black/10 bg-neutral-100 px-2 py-1.5 text-sm font-medium text-neutral-800 drop-shadow-[0_1px_2px_rgb(0_0_0/0.2)] dark:border-neutral-600 dark:bg-neutral-700 dark:text-white"
             style={{
               translate: '0 var(--tooltip-lift, 0px)',
               visibility: triggerHovered ? 'visible' : 'hidden',
             }}
           >
             {children}
-            <Tooltip.Arrow className="fill-neutral-100 drop-shadow-sm dark:fill-neutral-700" />
+            <span className="absolute left-1/2 top-full -ml-[5px] -mt-[6px] block h-2.5 w-2.5 rotate-45 rounded-[2px] border-b border-r border-black/10 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-700" />
           </Tooltip.Content>
         </Tooltip.Portal>
         </Tooltip.Root>
