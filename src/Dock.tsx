@@ -51,6 +51,25 @@ export type DockEntry = {
   treatment?: 'cover' | 'preshaped' | 'tile';
 };
 
+/**
+ * Dock tray geometry, derived from the icon pipeline so the tray is always
+ * visually concentric with the icons inside it:
+ *   icon content box = slot * 13/16 (the pipeline's canvas inset)
+ *   icon radius      = 22% of the content box (the pipeline's corner radius)
+ *   tray radius      = icon radius + tray padding  (outer = inner + padding)
+ * Tray padding is uniform on all four sides.
+ */
+function trayGeometry(tuning: DockTuning) {
+  const content = tuning.size * (13 / 16);
+  const iconRadius = content * 0.22;
+  const padding = Math.max(8, Math.round(tuning.size * 0.2));
+  return {
+    padding,
+    radius: iconRadius + padding,
+    height: tuning.size + padding * 2,
+  };
+}
+
 function MacosIcon({ entry, alt }: { entry: DockEntry; alt: string }) {
   const treatment = entry.treatment ?? 'cover';
   const content =
@@ -86,6 +105,7 @@ export default function Dock({
   const right = useTransform(mouseRight, [0, 40], [0, -40]);
   const leftSpring = useSpring(left, spring);
   const rightSpring = useSpring(right, spring);
+  const tray = trayGeometry(tuning);
 
   return (
     <>
@@ -101,12 +121,12 @@ export default function Dock({
           mouseLeft.set(-Infinity);
           mouseRight.set(-Infinity);
         }}
-        className="mx-auto hidden items-end px-2 pb-3 sm:flex relative"
-        style={{ gap: tuning.gap, height: tuning.size + 24 }}
+        className="mx-auto hidden items-end sm:flex relative"
+        style={{ gap: tuning.gap, height: tray.height, padding: tray.padding }}
       >
         <motion.div
-          className="absolute rounded-2xl inset-y-0 bg-white/60 dark:bg-neutral-800/60 border border-black/10 dark:border-white/10 -z-10 backdrop-blur-md"
-          style={{ left: leftSpring, right: rightSpring }}
+          className="absolute inset-y-0 bg-white/60 dark:bg-neutral-800/60 border border-black/10 dark:border-white/10 -z-10 backdrop-blur-md"
+          style={{ left: leftSpring, right: rightSpring, borderRadius: tray.radius }}
         />
 
         {entries.map((entry) => (
@@ -118,8 +138,12 @@ export default function Dock({
 
       <div className="sm:hidden">
         <div
-          className="mx-auto flex max-w-full items-end gap-4 overflow-x-scroll rounded-2xl bg-white/60 dark:bg-neutral-800/60 border border-black/10 dark:border-white/10 backdrop-blur-md px-4 pb-3 sm:hidden"
-          style={{ height: tuning.size + 24 }}
+          className="mx-auto flex max-w-full items-end gap-4 overflow-x-scroll bg-white/60 dark:bg-neutral-800/60 border border-black/10 dark:border-white/10 backdrop-blur-md sm:hidden"
+          style={{
+            height: tray.height,
+            padding: tray.padding,
+            borderRadius: tray.radius,
+          }}
         >
           {entries.map((entry) => (
             <a
