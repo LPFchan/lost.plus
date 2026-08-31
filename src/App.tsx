@@ -38,7 +38,6 @@ const ENTRIES: DockEntry[] = [
     name: 'censor',
     href: 'https://censor.lost.plus',
     icon: censorIcon,
-    treatment: 'preshaped',
   },
   { name: 'gsw', href: 'https://gsw.lost.plus', icon: gswIcon },
   { name: 'setup', href: 'https://setup.lost.plus', icon: setupIcon },
