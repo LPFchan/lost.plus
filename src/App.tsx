@@ -9,6 +9,7 @@ import Dock, {
 import heatmapIcon from './assets/raw/heatmap.png';
 import eastselfIcon from './assets/raw/eastself.jpg';
 import okdamIcon from './assets/raw/okdam.png';
+import censorIcon from './assets/raw/censor.png';
 import gswIcon from './assets/raw/gsw.png';
 import artmuIcon from './assets/raw/artmu.png';
 import artmuDarkIcon from './assets/raw/artmu-dark.png';
@@ -33,6 +34,12 @@ const ENTRIES: DockEntry[] = [
     treatment: 'preshaped',
   },
   { name: 'okdam', href: 'https://okdam.lost.plus', icon: okdamIcon },
+  {
+    name: 'censor',
+    href: 'https://censor.lost.plus',
+    icon: censorIcon,
+    treatment: 'preshaped',
+  },
   { name: 'gsw', href: 'https://gsw.lost.plus', icon: gswIcon },
   { name: 'setup', href: 'https://setup.lost.plus', icon: setupIcon },
   {
