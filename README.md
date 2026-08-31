@@ -6,6 +6,21 @@ Tailwind v4 + framer-motion; the dock interaction is the
 [buildui magnified-dock recipe](https://buildui.com/recipes/magnified-dock)
 used verbatim.
 
+## PWA
+
+The site is installable as a PWA (standalone window, offline-capable) via
+`vite-plugin-pwa`:
+
+- `vite.config.ts` holds the web app manifest and the workbox config
+  (precache the whole build, `navigateFallback: index.html`).
+- Service worker is registered in `src/main.tsx` with
+  `registerSW({ immediate: true })` and `registerType: 'autoUpdate'`, so
+  returning visitors pick up new deploys automatically.
+- Icons live in `public/` (not `src/assets/`, so they keep stable
+  un-hashed URLs): `pwa-192x192.png` / `pwa-512x512.png` (standard),
+  `maskable-*.png` (icon scaled to 80% on a `#f6f5f2` canvas, inside the
+  Android safe zone), and `apple-touch-icon.png` (180px, opaque).
+
 ## Icons
 
 Drop a **raw rectangular image** (png/jpg/svg) into `src/assets/raw/` and add an
@@ -43,4 +58,3 @@ Hosted on oci-ubuntu as static files served by `caddy` (file_server on
 127.0.0.1:8400, root `/var/www/lost.plus`), fronted by the host-level
 `cloudflared` tunnel (hostname `lost.plus` -> `http://localhost:8400`).
 Deploy = `npm run build` + rsync `dist/` to `/var/www/lost.plus/`.
-
