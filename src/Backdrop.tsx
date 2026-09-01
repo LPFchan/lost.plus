@@ -44,14 +44,16 @@ const FADE_MS = 320;
 const FROZEN_T = 12; // where the drift parks under prefers-reduced-motion
 
 /**
- * Quiet palettes: every blob sits within a few percent of the base, so the
- * field reads as depth rather than as colour. Loud gradients lose a fight
- * with eleven loud app icons.
+ * Monochrome, warm. Every blob is the same hue as the base and differs only in
+ * how light it is, so the field reads as soft moving light on one warm surface
+ * rather than as colour. With no hue left to carry the drift, the lightness
+ * spread has to be wider than a tinted palette would need — otherwise nothing
+ * moves that the eye can see.
  */
 const PALETTES = {
   light: {
     base: '#f6f5f2',
-    blobs: ['#f7e6d8', '#e4ecf6', '#efe7f4', '#e8f1ea', '#fbf4e7'],
+    blobs: ['#fffdf7', '#e3ded1', '#fdfaf2', '#dcd7c9', '#fffef8'],
     // A glass edge on a pale surface reads as a grey line, not a bright one.
     edge: '#b4b1ac',
     fres: 0.5,
@@ -61,9 +63,9 @@ const PALETTES = {
     // Dark ramps need a larger absolute step than pale ones before the eye
     // sees them at all, so these sit further from the base than the light
     // blobs do while reading just as quietly.
-    base: '#131315',
-    blobs: ['#211d33', '#112329', '#26181e', '#181a29', '#0d0d0f'],
-    edge: '#dfe3f0',
+    base: '#151413',
+    blobs: ['#343029', '#1a1815', '#3d372c', '#201d18', '#0a0a09'],
+    edge: '#f0ece2',
     fres: 0.35,
     spec: 0.24,
   },
@@ -128,14 +130,20 @@ const FRAG_MESH = `#version 300 es
     vec2 p = vec2(uv.x * a, uv.y);
     float t = uTime;
 
-    // Five slow loops on frequencies that share no common period, so the
-    // field never visibly repeats.
+    // Five loops on frequencies that share no common period, so the field never
+    // visibly repeats. The dials are travel against radius, and monochrome
+    // forces them apart: with no hue to carry the drift, five wide blobs just
+    // overlap into a constant average and the field sits still. So each blob is
+    // tighter than its swing is long, and actually sweeps past a given point
+    // rather than hovering over it. Rates are low enough that the worst change
+    // over ten seconds is a few levels out of 255 — you never catch it moving,
+    // but the light is somewhere else whenever you look back.
     vec3 c = uBase;
-    c = blob(c, uC0, p, vec2(0.20 * a + 0.10 * sin(t * 0.11), 0.24 + 0.09 * cos(t * 0.14)), 0.46);
-    c = blob(c, uC1, p, vec2(0.84 * a + 0.09 * cos(t * 0.09), 0.18 + 0.10 * sin(t * 0.12)), 0.42);
-    c = blob(c, uC2, p, vec2(0.74 * a + 0.11 * sin(t * 0.07), 0.82 + 0.08 * cos(t * 0.10)), 0.50);
-    c = blob(c, uC3, p, vec2(0.22 * a + 0.08 * cos(t * 0.13), 0.80 + 0.09 * sin(t * 0.08)), 0.44);
-    c = blob(c, uC4, p, vec2(0.50 * a + 0.13 * sin(t * 0.06), 0.50 + 0.11 * cos(t * 0.05)), 0.38);
+    c = blob(c, uC0, p, vec2(0.18 * a + 0.34 * sin(t * 0.041), 0.22 + 0.30 * cos(t * 0.053)), 0.46);
+    c = blob(c, uC1, p, vec2(0.86 * a + 0.32 * cos(t * 0.034), 0.20 + 0.33 * sin(t * 0.047)), 0.44);
+    c = blob(c, uC2, p, vec2(0.78 * a + 0.36 * sin(t * 0.028), 0.80 + 0.29 * cos(t * 0.039)), 0.50);
+    c = blob(c, uC3, p, vec2(0.20 * a + 0.30 * cos(t * 0.049), 0.82 + 0.32 * sin(t * 0.032)), 0.45);
+    c = blob(c, uC4, p, vec2(0.50 * a + 0.40 * sin(t * 0.023), 0.50 + 0.35 * cos(t * 0.019)), 0.42);
 
     // Ramps this soft cross a whole screen in a handful of 8-bit steps and
     // would band into visible stripes; a pixel-sized dither scatters the step.

@@ -8,7 +8,8 @@ used verbatim.
 
 ## Backdrop and glass
 
-The background is a slowly drifting mesh gradient, and the dock tray (and the
+The background is a slowly drifting mesh gradient — monochrome, warm, five
+soft blobs that differ only in how light they are — and the dock tray (and the
 phone-sized folder grid) are rendered as refracting glass on top of it. Both
 are drawn by `src/Backdrop.tsx` on a single full-screen WebGL2 canvas, adapted
 from the lens on [setup.lost.plus](https://github.com/LPFchan/setup/blob/main/index.html).
@@ -33,6 +34,13 @@ were never in the texture.
 
 Notes:
 
+- The gradient's two dials are how far each blob travels against how wide it
+  is, and monochrome forces them apart: with no hue to carry the drift, wide
+  blobs just overlap into a constant average and the field sits still. Each
+  blob is tighter than its swing is long so it sweeps *past* a point rather
+  than hovering over it. Tuned so the worst change over any ten seconds is a
+  few levels out of 255 — never visibly animating, clearly somewhere else a
+  minute later.
 - `Dock` hands `Backdrop` both candidate panels; the one the 480px breakpoint
   hides measures zero, so the breakpoint stays in the stylesheet only.
 - On narrow windows the whole dock is CSS-scaled. The shader solves the optics

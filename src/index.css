@@ -24,22 +24,22 @@ body {
   margin: 0;
   background-color: #f6f5f2;
   background-image:
-    radial-gradient(58% 52% at 20% 24%, #f7e6d8 0%, transparent 72%),
-    radial-gradient(52% 48% at 84% 18%, #e4ecf6 0%, transparent 72%),
-    radial-gradient(62% 58% at 74% 82%, #efe7f4 0%, transparent 72%),
-    radial-gradient(50% 48% at 22% 80%, #e8f1ea 0%, transparent 72%),
-    radial-gradient(44% 42% at 50% 50%, #fbf4e7 0%, transparent 72%);
+    radial-gradient(56% 50% at 18% 22%, #fffdf7 0%, transparent 72%),
+    radial-gradient(54% 48% at 86% 20%, #e3ded1 0%, transparent 72%),
+    radial-gradient(60% 54% at 78% 80%, #fdfaf2 0%, transparent 72%),
+    radial-gradient(55% 49% at 20% 82%, #dcd7c9 0%, transparent 72%),
+    radial-gradient(50% 46% at 50% 50%, #fffef8 0%, transparent 72%);
   background-attachment: fixed;
 }
 
 .dark body {
-  background-color: #131315;
+  background-color: #151413;
   background-image:
-    radial-gradient(58% 52% at 20% 24%, #211d33 0%, transparent 72%),
-    radial-gradient(52% 48% at 84% 18%, #112329 0%, transparent 72%),
-    radial-gradient(62% 58% at 74% 82%, #26181e 0%, transparent 72%),
-    radial-gradient(50% 48% at 22% 80%, #181a29 0%, transparent 72%),
-    radial-gradient(44% 42% at 50% 50%, #0d0d0f 0%, transparent 72%);
+    radial-gradient(56% 50% at 18% 22%, #343029 0%, transparent 72%),
+    radial-gradient(54% 48% at 86% 20%, #1a1815 0%, transparent 72%),
+    radial-gradient(60% 54% at 78% 80%, #3d372c 0%, transparent 72%),
+    radial-gradient(55% 49% at 20% 82%, #201d18 0%, transparent 72%),
+    radial-gradient(50% 46% at 50% 50%, #0a0a09 0%, transparent 72%);
 }
 
 /* The shader draws the background *and* the glass, so it sits behind
