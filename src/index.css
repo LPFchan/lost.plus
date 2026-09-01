@@ -16,13 +16,82 @@ body,
   height: 100%;
 }
 
+/* Fallback mesh gradient. The WebGL backdrop covers this whenever it runs
+   (its canvas is opaque), so these radial stops are only ever seen when there
+   is no WebGL2 — a blocklisted GPU, a VM, acceleration switched off. Kept in
+   the same quiet palette as the shader so the two read as the same design. */
 body {
   margin: 0;
   background-color: #f6f5f2;
+  background-image:
+    radial-gradient(58% 52% at 20% 24%, #f7e6d8 0%, transparent 72%),
+    radial-gradient(52% 48% at 84% 18%, #e4ecf6 0%, transparent 72%),
+    radial-gradient(62% 58% at 74% 82%, #efe7f4 0%, transparent 72%),
+    radial-gradient(50% 48% at 22% 80%, #e8f1ea 0%, transparent 72%),
+    radial-gradient(44% 42% at 50% 50%, #fbf4e7 0%, transparent 72%);
+  background-attachment: fixed;
 }
 
 .dark body {
   background-color: #131315;
+  background-image:
+    radial-gradient(58% 52% at 20% 24%, #211d33 0%, transparent 72%),
+    radial-gradient(52% 48% at 84% 18%, #112329 0%, transparent 72%),
+    radial-gradient(62% 58% at 74% 82%, #26181e 0%, transparent 72%),
+    radial-gradient(50% 48% at 22% 80%, #181a29 0%, transparent 72%),
+    radial-gradient(44% 42% at 50% 50%, #0d0d0f 0%, transparent 72%);
+}
+
+/* The shader draws the background *and* the glass, so it sits behind
+   everything and the page content is lifted above it (see main in App). */
+.backdrop-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  pointer-events: none;
+}
+
+body.lensing .backdrop-canvas {
+  display: block;
+}
+
+/* The dock tray and the phone-sized folder grid are the same material, so
+   they are one class. Without the lens this is the whole effect: a tinted,
+   blurred panel. With it, the tint thins right down and gets out of the
+   refraction's way — the lens paints its own frost underneath, and 60% white
+   over the top would wash the whole thing flat. */
+.glass-panel {
+  background-color: rgb(255 255 255 / 0.6);
+  border: 1px solid rgb(0 0 0 / 0.1);
+  backdrop-filter: blur(12px);
+}
+
+.dark .glass-panel {
+  background-color: rgb(38 38 38 / 0.6);
+  border-color: rgb(255 255 255 / 0.1);
+}
+
+body.lensing .glass-panel {
+  background-color: rgb(255 255 255 / 0.28);
+  backdrop-filter: none;
+  /* The lit edge. On a pale backdrop the shader's Fresnel term clips to white
+     and disappears, so the edge is carried here instead — same as the macOS
+     dock, which draws its rim rather than computing it. */
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.7),
+    inset 0 -1px 1px rgb(255 255 255 / 0.28),
+    inset 0 0 0 1px rgb(255 255 255 / 0.22);
+}
+
+.dark body.lensing .glass-panel {
+  background-color: rgb(38 38 38 / 0.26);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    inset 0 -1px 1px rgb(255 255 255 / 0.07),
+    inset 0 0 0 1px rgb(255 255 255 / 0.09);
 }
 
 /* macOS icon pipeline — every dock icon goes through this, no exceptions.

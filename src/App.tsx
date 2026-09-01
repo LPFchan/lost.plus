@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Backdrop, { GlassTarget } from './Backdrop';
 import Dock, {
   DEFAULT_TUNING,
   DockEntry,
@@ -70,6 +71,9 @@ const ENTRIES: DockEntry[] = [
 
 export default function App() {
   const [tuning] = useState<DockTuning>(DEFAULT_TUNING);
+  // The dock fills this in with its glass panels; the backdrop reads it every
+  // frame to know what to refract.
+  const glass = useRef<GlassTarget[]>([]);
 
   const [entries, setEntries] = useState<DockEntry[]>(() => {
     try {
@@ -118,8 +122,19 @@ export default function App() {
   }, [tuning]);
 
   return (
-    <main className="flex h-full items-center justify-center">
-      <Dock entries={entries} tuning={tuning} onReorder={setEntries} zoom={zoom} />
-    </main>
+    <>
+      <Backdrop glass={glass} />
+      {/* The backdrop canvas is positioned, so unpositioned content would
+          paint underneath it. Lift the page into its own layer above. */}
+      <main className="relative z-10 flex h-full items-center justify-center">
+        <Dock
+          entries={entries}
+          tuning={tuning}
+          onReorder={setEntries}
+          zoom={zoom}
+          glass={glass}
+        />
+      </main>
+    </>
   );
 }

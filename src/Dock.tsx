@@ -15,7 +15,8 @@ import {
   useSpring,
   useTransform,
 } from 'framer-motion';
-import { ReactNode, useMemo, useRef, useState } from 'react';
+import { ReactNode, RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { GlassTarget } from './Backdrop';
 
 export type DockTuning = {
   size: number; // resting icon width in px
@@ -75,6 +76,9 @@ function trayGeometry(tuning: DockTuning) {
   };
 }
 
+/** corner radius of the phone-sized folder grid; the tray derives its own */
+const GRID_RADIUS = 32;
+
 /** natural (unzoomed) dock width: icons + gaps + tray padding on both sides */
 export function dockNaturalWidth(entries: number, tuning: DockTuning): number {
   const tray = trayGeometry(tuning);
@@ -124,12 +128,15 @@ export default function Dock({
   tuning,
   onReorder,
   zoom = 1,
+  glass,
 }: {
   entries: DockEntry[];
   tuning: DockTuning;
   onReorder: (entries: DockEntry[]) => void;
   /** whole-dock scale factor for the fit-to-width regime (A < width < B) */
   zoom?: number;
+  /** filled with the panels the backdrop should render as glass */
+  glass?: RefObject<GlassTarget[]>;
 }) {
   const mouseLeft = useMotionValue(-Infinity);
   const mouseRight = useMotionValue(-Infinity);
@@ -151,6 +158,20 @@ export default function Dock({
   // icons measure themselves against the same rect so zoom can't skew the
   // magnification distance math
   const dockRect = useRef<DOMRect | null>(null);
+
+  // Both glass panels are always in the DOM; the breakpoint hides one with
+  // display:none, which makes it measure zero. Handing the backdrop both and
+  // letting it pick the one with a real rect keeps the 480px breakpoint in the
+  // stylesheet as its single source of truth.
+  const trayRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!glass) return;
+    glass.current = [
+      { el: trayRef.current, radius: tray.radius, scale: zoom },
+      { el: gridRef.current, radius: GRID_RADIUS, scale: 1 },
+    ];
+  });
 
   return (
     <>
@@ -191,7 +212,8 @@ export default function Dock({
         }}
       >
         <motion.div
-          className="absolute inset-y-0 bg-white/60 dark:bg-neutral-800/60 border border-black/10 dark:border-white/10 -z-10 backdrop-blur-md"
+          ref={trayRef}
+          className="glass-panel absolute inset-y-0 -z-10"
           style={{ left: leftSpring, right: rightSpring, borderRadius: tray.radius }}
         />
 
@@ -204,7 +226,11 @@ export default function Dock({
       </div>
 
       <div className="min-[480px]:hidden">
-        <div className="mx-auto grid w-full max-w-sm grid-cols-3 gap-x-2 gap-y-6 rounded-[2rem] bg-white/60 dark:bg-neutral-800/60 border border-black/10 dark:border-white/10 backdrop-blur-md p-6">
+        <div
+          ref={gridRef}
+          className="glass-panel mx-auto grid w-full max-w-sm grid-cols-3 gap-x-2 gap-y-6 p-6"
+          style={{ borderRadius: GRID_RADIUS }}
+        >
           {entries.map((entry) => (
             <a
               key={entry.name}

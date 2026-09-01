@@ -6,6 +6,46 @@ Tailwind v4 + framer-motion; the dock interaction is the
 [buildui magnified-dock recipe](https://buildui.com/recipes/magnified-dock)
 used verbatim.
 
+## Backdrop and glass
+
+The background is a slowly drifting mesh gradient, and the dock tray (and the
+phone-sized folder grid) are rendered as refracting glass on top of it. Both
+are drawn by `src/Backdrop.tsx` on a single full-screen WebGL2 canvas, adapted
+from the lens on [setup.lost.plus](https://github.com/LPFchan/setup/blob/main/index.html).
+
+They have to be one canvas and one draw, or the glass would be bending a
+backdrop one frame stale. Each frame:
+
+1. the gradient, over the whole viewport
+2. the gradient again over just the panel's rect, into a mipmapped buffer
+   (one `generateMipmap` builds the whole frost ladder)
+3. the optics, back over the panel's rect
+
+Because the gradient is drawn by the shader rather than sampled from an image
+or a video, both draws are the same field by construction, and there is no
+per-frame texture upload at all — which is the expensive, fragile part of the
+setup page that this version doesn't need.
+
+The panel elements in the DOM keep only a tint and a lit rim (`.glass-panel`
+in `src/index.css`); the bending happens on the canvas underneath them. Dock
+icons therefore sit *on* the glass rather than being refracted by it — they
+were never in the texture.
+
+Notes:
+
+- `Dock` hands `Backdrop` both candidate panels; the one the 480px breakpoint
+  hides measures zero, so the breakpoint stays in the stylesheet only.
+- On narrow windows the whole dock is CSS-scaled. The shader solves the optics
+  on the undeformed panel and pushes the result back out, so the rim doesn't
+  thin as the window narrows.
+- No WebGL2 (blocklisted GPU, VM, acceleration off): the canvas stays hidden
+  and a CSS radial-gradient approximation on `body` plus the plain
+  `backdrop-filter` panel is the whole effect.
+- `prefers-reduced-motion` parks the drift; the refraction still runs.
+- Don't hand-write `-webkit-` prefixes in `index.css`. lightningcss collapses
+  a prefixed/unprefixed pair down to the prefixed one and drops the standard
+  property; it adds the prefixes correctly on its own.
+
 ## PWA
 
 The site is installable as a PWA (standalone window, offline-capable) via
