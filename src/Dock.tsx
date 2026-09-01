@@ -79,6 +79,31 @@ function trayGeometry(tuning: DockTuning) {
 /** corner radius of the phone-sized folder grid; the tray derives its own */
 const GRID_RADIUS = 32;
 
+/**
+ * The magnification curve: how much an icon `d` px from the cursor grows, and
+ * how far it is pushed away. The single source of truth for it — the icons
+ * transform with this, and the tray measures its end icons with it, so the two
+ * can never disagree about where an icon's edge has got to.
+ *
+ * `d` is signed and in unzoomed dock pixels: positive means the cursor is to
+ * the right of the icon, so the icon is pushed left.
+ */
+function magnify(d: number, tuning: DockTuning): { scale: number; x: number } {
+  if (d === -Infinity) return { scale: 1, x: 0 };
+  const t = Math.min(Math.abs(d) / tuning.distance, 1);
+  const scale = 1 + (tuning.scale - 1) * (1 - t);
+  const x =
+    t >= 1
+      ? Math.sign(d) * -tuning.nudge
+      : (-d / tuning.distance) * tuning.nudge * scale;
+  return { scale, x };
+}
+
+/** resting centre of the icon in slot `i`, in unzoomed dock pixels */
+function slotCenter(i: number, tuning: DockTuning): number {
+  return trayGeometry(tuning).padding + i * (tuning.size + tuning.gap) + tuning.size / 2;
+}
+
 /** natural (unzoomed) dock width: icons + gaps + tray padding on both sides */
 export function dockNaturalWidth(entries: number, tuning: DockTuning): number {
   const tray = trayGeometry(tuning);
@@ -139,16 +164,49 @@ export default function Dock({
   glass?: RefObject<GlassTarget[]>;
 }) {
   const mouseLeft = useMotionValue(-Infinity);
-  const mouseRight = useMotionValue(-Infinity);
   const spring = useMemo(
     () => ({ mass: tuning.mass, stiffness: tuning.stiffness, damping: tuning.damping }),
     [tuning.mass, tuning.stiffness, tuning.damping],
   );
-  const left = useTransform(mouseLeft, [0, 40], [0, -40]);
-  const right = useTransform(mouseRight, [0, 40], [0, -40]);
-  const leftSpring = useSpring(left, spring);
-  const rightSpring = useSpring(right, spring);
   const tray = trayGeometry(tuning);
+
+  // The tray hugs the icons at each end, keeping the same padding it has at
+  // rest. It used to guess instead — a fixed 40px of stretch keyed off the
+  // cursor — which broke the padding two different ways: an end icon shoved
+  // away from the cursor travels `nudge` px and outran the tray, while an end
+  // icon that *is* the hovered one isn't shoved at all and only grows, so the
+  // tray ran away from it. Deriving both edges from the same magnify() the
+  // icons use means there is no constant left to keep in sync, and
+  // magnification is handled by the same measurement rather than separately.
+  //
+  // Only the straight edges follow. The corner radius stays put: it feeds the
+  // glass shader, whose shape model has one radius for all four corners, so a
+  // tray whose two ends had grown by different amounts could not be expressed.
+  const endShift = (slot: number) => {
+    const mouse = mouseLeft.get();
+    const d = mouse === -Infinity ? -Infinity : mouse / zoom - slotCenter(slot, tuning);
+    const { x, scale } = magnify(d, tuning);
+    // the icon's own nudge, plus half its growth, since it scales about its
+    // centre — together, how far its outer edge has moved from rest
+    return { x, spread: ((scale - 1) * tuning.size) / 2 };
+  };
+  // Both are offsets from the resting edge, negative outward, and both are
+  // sprung with the icons' own spring so the tray and the icon it is hugging
+  // settle on exactly the same curve.
+  const leftSpring = useSpring(
+    useTransform(() => {
+      const { x, spread } = endShift(0);
+      return x - spread;
+    }),
+    spring,
+  );
+  const rightSpring = useSpring(
+    useTransform(() => {
+      const { x, spread } = endShift(entries.length - 1);
+      return -x - spread;
+    }),
+    spring,
+  );
   const naturalWidth = dockNaturalWidth(entries.length, tuning);
   // magnification grows icons beyond the dock's layout box on all sides.
   // reserve room inside the clip boundary so nothing is ever visually cut,
@@ -192,16 +250,9 @@ export default function Dock({
         onMouseMove={(e) => {
           const rect = e.currentTarget.getBoundingClientRect();
           dockRect.current = rect;
-          const { left, right } = rect;
-          const offsetLeft = e.clientX - left;
-          const offsetRight = right - e.clientX;
-          mouseLeft.set(offsetLeft);
-          mouseRight.set(offsetRight);
+          mouseLeft.set(e.clientX - rect.left);
         }}
-        onMouseLeave={() => {
-          mouseLeft.set(-Infinity);
-          mouseRight.set(-Infinity);
-        }}
+        onMouseLeave={() => mouseLeft.set(-Infinity)}
         className="mx-auto flex items-end relative origin-center"
         style={{
           gap: tuning.gap,
@@ -294,21 +345,8 @@ function AppIcon({
     return (mouse - iconCenterInDock) / zoom;
   });
 
-  const scale = useTransform(
-    distance,
-    [-tuning.distance, 0, tuning.distance],
-    [1, tuning.scale, 1],
-  );
-  const x = useTransform(() => {
-    const d = distance.get();
-    if (d === -Infinity) {
-      return 0;
-    } else if (d < -tuning.distance || d > tuning.distance) {
-      return Math.sign(d) * -1 * tuning.nudge;
-    } else {
-      return (-d / tuning.distance) * tuning.nudge * scale.get();
-    }
-  });
+  const scale = useTransform(() => magnify(distance.get(), tuning).scale);
+  const x = useTransform(() => magnify(distance.get(), tuning).x);
 
   const scaleSpring = useSpring(scale, spring);
   const xSpring = useSpring(x, spring);

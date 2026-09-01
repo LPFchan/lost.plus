@@ -2,9 +2,31 @@
 
 A static launcher for the web services I host, styled as a macOS dock
 (magnify on hover, spring physics, bounce on click). Built with Vite + React +
-Tailwind v4 + framer-motion; the dock interaction is the
-[buildui magnified-dock recipe](https://buildui.com/recipes/magnified-dock)
-used verbatim.
+Tailwind v4 + framer-motion; the dock interaction started as the
+[buildui magnified-dock recipe](https://buildui.com/recipes/magnified-dock),
+with the tray's edges reworked (see below).
+
+## Dock tray
+
+The tray hugs the icons at each end, holding the padding it has at rest.
+
+The recipe stretched it by a fixed 40px keyed off the cursor position, which
+broke that padding two separate ways once the tuning moved away from the
+recipe's defaults. An end icon shoved away from the cursor travels `nudge`
+(61px) and outran the tray, closing the gap to 7px. An end icon that *is* the
+hovered one isn't shoved at all — it only magnifies — so the tray ran away from
+it instead and the gap opened to 42px.
+
+Both edges are now derived from the same `magnify()` the icons transform with,
+so there is no constant left to keep in sync with the tuning, and growth is
+handled by the same measurement as the nudge rather than being missed. Because
+the tray hugs the icons' *button* box, the visible gap around any icon works out
+to `padding + scale * inset` on all four sides at once — uniform all around,
+whether that icon is magnified or not.
+
+The corner radius deliberately does not follow: it feeds the glass shader,
+whose shape model carries one radius for all four corners, so a tray whose two
+ends had grown by different amounts could not be expressed.
 
 ## Backdrop and glass
 
