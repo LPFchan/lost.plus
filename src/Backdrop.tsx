@@ -36,11 +36,53 @@ export type GlassTarget = {
   scale: number;
 };
 
-const BLEED = 34; // px of gradient kept outside the panel to bend inward
-const THICK = 22; // width of the refracting rim band
-const DISP = 26; // peak displacement
-const IOR = 1.5;
-const LOD = 2.0; // frost: mip level the optics sample at
+/** knobs the lens shader exposes, all in undeformed px unless noted */
+export type LensConfig = {
+  bleed: number;
+  thick: number;
+  disp: number;
+  ior: number;
+  /** frost: mip level the optics sample at */
+  lod: number;
+  /** CSS whiteness of the panel tint over the lens (0 = glass only) */
+  tint: number;
+};
+
+const BLEED = 140; // px of scene kept outside the panel to bend inward
+const THICK = 90; // width of the refracting rim band
+const DISP = 110; // peak displacement
+const IOR = 1.45;
+const LOD = 1.0; // frost: base mip level the optics sample at
+
+/**
+ * ?lens=bleed,thick,disp,ior,lod overrides the glass optics for tuning in a
+ * live browser (refresh to apply). Missing values keep the defaults.
+ */
+function lensConfig(): LensConfig {
+  const def = { bleed: BLEED, thick: THICK, disp: DISP, ior: IOR, lod: LOD, tint: -1 };
+  const q = new URLSearchParams(location.search).get('lens');
+  if (!q) return def;
+  const v = q.split(',').map((s) => parseFloat(s));
+  const keys: (keyof LensConfig)[] = ['bleed', 'thick', 'disp', 'ior', 'lod', 'tint'];
+  const out = { ...def };
+  keys.forEach((k, i) => {
+    if (Number.isFinite(v[i])) out[k] = v[i];
+  });
+  return out;
+}
+
+/**
+ * ?quality=<0.4..2> scales the hero's internal render resolution
+ * (refresh to apply). The scene upsamples to the canvas, so below 1 it
+ * softens a touch and gets a lot faster; above 1 sharpens on a strong GPU.
+ */
+function heroQuality(): number {
+  const q = parseFloat(
+    new URLSearchParams(location.search).get('quality') || '',
+  );
+  return Number.isFinite(q) ? Math.min(Math.max(q, 0.4), 2) : 1;
+}
+
 const FADE_MS = 320;
 /**
  * The backdrop is now the ported Fable hero scene (see src/hero). The mesh
@@ -147,11 +189,16 @@ const FRAG_LENS = `#version 300 es
     ) + 1e-6);
     vec2 off = n * m * uDisp * uScale;      // local displacement, back out
 
+    // Interior frost: the flat face of the glass still scatters, so the
+    // panel samples a deeper mip away from the rim. Rim stays sharp where
+    // the bend is.
+    float lod = uLod + 2.0 * (1.0 - t) * (1.0 - t);
+
     // Red bends furthest, blue least: dispersion fringes the rim.
     vec3 col;
-    col.r = textureLod(uTex, (p + off * 1.00) / uCanvas, uLod).r;
-    col.g = textureLod(uTex, (p + off * 0.94) / uCanvas, uLod).g;
-    col.b = textureLod(uTex, (p + off * 0.88) / uCanvas, uLod).b;
+    col.r = textureLod(uTex, (p + off * 1.00) / uCanvas, lod).r;
+    col.g = textureLod(uTex, (p + off * 0.94) / uCanvas, lod).g;
+    col.b = textureLod(uTex, (p + off * 0.88) / uCanvas, lod).b;
 
     // Schlick: glass turns mirror at grazing angles, which is most of why a
     // real rim reads as glass rather than as a blurred cutout. Blended toward
@@ -181,20 +228,24 @@ type Uniforms = Record<string, WebGLUniformLocation | null>;
 type Program = { p: WebGLProgram; u: Uniforms };
 
 // Squircle profile and its Snell bend on the CPU, so the shader can normalise
-// against the peak instead of guessing a scale.
+// against the peak instead of guessing a scale. Recomputed when ?lens= pins a
+// different IOR.
 const surface = (x: number) =>
   Math.pow(1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 4), 0.25);
 
-function bend(t: number) {
+function bend(t: number, ior: number) {
   const e = 1e-4;
   const slope = (surface(t + e) - surface(t - e)) / (2 * e);
   const incidence = Math.atan(slope);
-  const exit = Math.asin(Math.min(Math.sin(incidence) / IOR, 1));
+  const exit = Math.asin(Math.min(Math.sin(incidence) / ior, 1));
   return Math.tan(incidence - exit);
 }
 
-let peakBend = 0;
-for (let i = 0; i <= 256; i++) peakBend = Math.max(peakBend, bend(i / 256));
+function peakBendFor(ior: number) {
+  let peak = 0;
+  for (let i = 0; i <= 256; i++) peak = Math.max(peak, bend(i / 256, ior));
+  return peak;
+}
 
 export default function Backdrop({
   glass,
@@ -227,8 +278,11 @@ export default function Backdrop({
     let quadVAO: WebGLVertexArrayObject | null = null;
     let hero: HeroHandle | null = null;
     let frameCount = 0;
+    const lens = lensConfig();
+    const quality = heroQuality();
     // pointer parallax target, viewport-normalised (-1..1); eased in render
     const pointer: [number, number] = [0, 0];
+    let lastPointerMove = 0;
     // The drift is integrated rather than read off the clock, so pausing for a
     // hidden tab resumes where it left off instead of snapping.
     let elapsed = 0;
@@ -280,11 +334,11 @@ export default function Backdrop({
           // The context may have been lost/recreated while the module loaded.
           if (gl !== g || !g || g.isContextLost()) return;
           try {
-            hero = createHero(g, canvas!, { assets: '/fx/hero/' });
+          hero = createHero(g, canvas!, { assets: '/fx/hero/' });
             hero.resize(
               window.innerWidth,
               window.innerHeight,
-              Math.min(window.devicePixelRatio || 1, 2),
+              Math.min(window.devicePixelRatio || 1, 2) * quality,
             );
           } catch (err) {
             console.error('[backdrop] hero init failed', err);
@@ -415,8 +469,16 @@ export default function Backdrop({
         canvas!.height = CH;
         stageW = CW;
         stageH = CH;
-        hero?.resize(VW, VH, dpr);
+        hero?.resize(VW, VH, dpr * quality);
       }
+
+      // When nothing is moving, the scene changes only through its slow
+      // drifts (wind, clouds, the sun's crawl) — none of them need 60fps.
+      // Idle frames render at 30; a pointer move returns to full rate within
+      // one frame, and the four seconds after each move stay there so the
+      // parallax ease finishes cleanly.
+      const idle = now - lastPointerMove > 4000;
+      if (idle && frameCount % 2 === 1) return;
 
       // Cap the step so a long stall (tab wake, GC pause) advances the drift
       // by one frame rather than teleporting it.
@@ -475,8 +537,8 @@ export default function Backdrop({
       const scale = target.scale || 1;
       const lw = r.width / scale; // undeformed extents, what the optics solve on
       const lh = r.height / scale;
-      const bx = BLEED * scale;
-      const by = BLEED * scale;
+      const bx = lens.bleed * scale;
+      const by = lens.bleed * scale;
       const vx = r.left - bx;
       const vy = r.top - by;
       const w = r.width + bx * 2;
@@ -525,11 +587,11 @@ export default function Backdrop({
         u.uRadius,
         Math.min(target.radius, lw / 2, lh / 2) * dpr,
       );
-      g.uniform1f(u.uThick, THICK * dpr);
-      g.uniform1f(u.uDisp, DISP * dpr);
-      g.uniform1f(u.uIOR, IOR);
-      g.uniform1f(u.uPeak, peakBend);
-      g.uniform1f(u.uLod, LOD);
+      g.uniform1f(u.uThick, lens.thick * dpr);
+      g.uniform1f(u.uDisp, lens.disp * dpr);
+      g.uniform1f(u.uIOR, lens.ior);
+      g.uniform1f(u.uPeak, peakBendFor(lens.ior));
+      g.uniform1f(u.uLod, lens.lod);
       g.uniform2f(u.uLight, -0.45, 0.75);
       g.uniform1f(u.uSpec, pal.spec);
       g.uniform1f(u.uFres, pal.fres);
@@ -546,6 +608,8 @@ export default function Backdrop({
     // backdrop-blur panel in index.css is the whole thing.
     if (!initGL()) return;
     document.body.classList.add('lensing');
+    if (lens.tint >= 0)
+      document.body.style.setProperty('--lens-tint', String(lens.tint));
 
     const onLost = (e: Event) => {
       e.preventDefault();
@@ -571,6 +635,7 @@ export default function Backdrop({
     const onPointer = (e: PointerEvent) => {
       pointer[0] = (e.clientX / window.innerWidth) * 2 - 1;
       pointer[1] = (e.clientY / window.innerHeight) * 2 - 1;
+      lastPointerMove = performance.now();
     };
     window.addEventListener('pointermove', onPointer, { passive: true });
 

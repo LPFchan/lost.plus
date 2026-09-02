@@ -75,7 +75,7 @@ body.lensing .backdrop-canvas {
 }
 
 body.lensing .glass-panel {
-  background-color: rgb(255 255 255 / 0.28);
+  background-color: rgb(255 255 255 / var(--lens-tint, 0.1));
   backdrop-filter: none;
   /* The lit edge. On a pale backdrop the shader's Fresnel term clips to white
      and disappears, so the edge is carried here instead — same as the macOS
@@ -87,7 +87,7 @@ body.lensing .glass-panel {
 }
 
 .dark body.lensing .glass-panel {
-  background-color: rgb(38 38 38 / 0.26);
+  background-color: rgb(38 38 38 / var(--lens-tint, 0.1));
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.16),
     inset 0 -1px 1px rgb(255 255 255 / 0.07),

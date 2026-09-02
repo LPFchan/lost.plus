@@ -85,6 +85,15 @@ Notes:
   and a CSS radial-gradient approximation on `body` plus the plain
   `backdrop-filter` panel is the whole effect.
 - `prefers-reduced-motion` parks the drift; the refraction still runs.
+- Two frame-rate escapes: the hero renders at an internal resolution scaled by
+  `?quality=` (default 1; 0.6-0.8 is a good weak-GPU setting), and when the
+  pointer has been idle for four seconds the whole canvas drops to 30fps - the
+  only motion left at that point is wind, clouds and the sun's crawl, none of
+  which need 60. A pointer move returns to full rate within a frame.
+- The lens strength is tunable live with `?lens=bleed,thick,disp,ior,lod,tint`
+  (all px in the undeformed panel, `tint` the CSS whiteness over the glass).
+  The defaults pull 140px of scene into the rim and frost the panel interior
+  by sampling a deeper mip away from the bend.
 - three.js is code-split (`import('./hero')`) so it streams in after first
   paint; until it (and then the bird's GLB) is ready the canvas shows a flat
   field in the same palette family.
