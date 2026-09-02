@@ -94,6 +94,12 @@ Notes:
   (all px in the undeformed panel, `tint` the CSS whiteness over the glass).
   The defaults pull 140px of scene into the rim and frost the panel interior
   by sampling a deeper mip away from the bend.
+- A hidden diagnostic console tunes all of this live: type the arrow
+  sequence up up down down left right left right (Konami-style) anywhere on
+  the page and a glass panel opens with an fps meter, a quality slider, sun
+  and cloud pins, and the six lens fields. The same sequence closes it.
+  Settings persist in localStorage (lp-quality, lp-sun, lp-cloud, lp-lens);
+  URL params still win when both are set. Reset clears it all.
 - three.js is code-split (`import('./hero')`) so it streams in after first
   paint; until it (and then the bird's GLB) is ready the canvas shows a flat
   field in the same palette family.

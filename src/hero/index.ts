@@ -421,10 +421,14 @@ export function createHero(
 
   function updateSolar() {
     // ?sun=<hour> pins the clock for testing; ?cloud=<0..1> pins coverage.
+    // The tuning menu pins the same things through lp-sun/lp-cloud in
+    // localStorage; the URL params win when both are set.
     const q = new URLSearchParams(location.search);
+    const sunPin = q.get('sun') ?? localStorage.getItem('lp-sun');
+    const cloudPin = q.get('cloud') ?? localStorage.getItem('lp-cloud');
     let date: Date | undefined;
-    if (q.has('sun')) {
-      const h = parseFloat(q.get('sun') || '12');
+    if (sunPin != null && sunPin !== '') {
+      const h = parseFloat(sunPin || '12');
       date = new Date();
       const kstNow = new Date(
         date.getTime() + (9 * 60 + date.getTimezoneOffset()) * 60000,
@@ -449,7 +453,8 @@ export function createHero(
     skyU.uNight.value = target.night;
     skyU.uDusk.value = target.dusk;
     skyU.uMorn.value = target.morning;
-    if (q.has('cloud')) skyU.uClouds.value = parseFloat(q.get('cloud') || '0.8');
+    if (cloudPin != null && cloudPin !== '')
+      skyU.uClouds.value = parseFloat(cloudPin || '0.8');
     const { dir, above } = sunSceneDir(sun);
     const mx = 0.18 * (1 - above) + dir[0] * above;
     const my = 0.74 * (1 - above) + dir[1] * above;

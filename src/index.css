@@ -187,3 +187,138 @@ body.lensing .glass-panel {
 .dock-icon-button.pressed::after {
   opacity: 1;
 }
+
+/* The hidden tuning console. Deliberately plain: it is a diagnostic tool,
+   not part of the page's visual language, so it keeps its own small type
+   and sits above everything. */
+.tune-progress {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 60;
+  font-size: 13px;
+  letter-spacing: 2px;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.tune-menu {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 60;
+  width: 240px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #33312d;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* not a .glass-panel: that class is wired to the shader lens and its
+     rules get reordered in the minified sheet, which would override these */
+  backdrop-filter: blur(14px) saturate(1.2);
+  background-color: rgb(255 255 255 / 0.55);
+  border: 1px solid rgb(0 0 0 / 0.12);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.6),
+    0 8px 28px rgb(0 0 0 / 0.18);
+}
+
+.dark .tune-menu {
+  color: #e8e4dc;
+  background-color: rgb(24 24 26 / 0.55);
+  border-color: rgb(255 255 255 / 0.14);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.14),
+    0 8px 28px rgb(0 0 0 / 0.4);
+}
+
+.tune-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.tune-fps {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.tune-close {
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+  opacity: 0.6;
+}
+
+.tune-close:hover {
+  opacity: 1;
+}
+
+.tune-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tune-row input[type="range"] {
+  width: 100%;
+}
+
+.tune-link {
+  align-self: flex-start;
+  font-size: 11px;
+  text-decoration: underline;
+  opacity: 0.65;
+}
+
+.tune-lens {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.tune-lens-field {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.tune-lens-field span {
+  font-size: 10px;
+  opacity: 0.65;
+}
+
+.tune-lens-field input {
+  width: 100%;
+  padding: 2px 4px;
+  border-radius: 6px;
+  border: 1px solid rgb(0 0 0 / 0.15);
+  background: rgb(255 255 255 / 0.5);
+  font-size: 11px;
+}
+
+.dark .tune-lens-field input {
+  border-color: rgb(255 255 255 / 0.2);
+  background: rgb(0 0 0 / 0.3);
+  color: inherit;
+}
+
+.tune-reset {
+  margin-top: 4px;
+  padding: 4px 0;
+  border-radius: 8px;
+  border: 1px solid rgb(0 0 0 / 0.15);
+  opacity: 0.8;
+}
+
+.dark .tune-reset {
+  border-color: rgb(255 255 255 / 0.2);
+}
+

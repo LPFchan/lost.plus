@@ -55,12 +55,16 @@ const IOR = 1.45;
 const LOD = 1.0; // frost: base mip level the optics sample at
 
 /**
- * ?lens=bleed,thick,disp,ior,lod overrides the glass optics for tuning in a
- * live browser (refresh to apply). Missing values keep the defaults.
+ * ?lens=bleed,thick,disp,ior,lod,tint overrides the glass optics for tuning
+ * in a live browser. Missing values keep the defaults. The tuning menu
+ * persists overrides to localStorage ('lp-lens'), which the URL param wins
+ * over when both are present.
  */
 function lensConfig(): LensConfig {
   const def = { bleed: BLEED, thick: THICK, disp: DISP, ior: IOR, lod: LOD, tint: -1 };
-  const q = new URLSearchParams(location.search).get('lens');
+  const q =
+    new URLSearchParams(location.search).get('lens') ||
+    localStorage.getItem('lp-lens');
   if (!q) return def;
   const v = q.split(',').map((s) => parseFloat(s));
   const keys: (keyof LensConfig)[] = ['bleed', 'thick', 'disp', 'ior', 'lod', 'tint'];
@@ -80,7 +84,10 @@ function heroQuality(): number {
   const q = parseFloat(
     new URLSearchParams(location.search).get('quality') || '',
   );
-  return Number.isFinite(q) ? Math.min(Math.max(q, 0.4), 2) : 1;
+  if (Number.isFinite(q)) return Math.min(Math.max(q, 0.4), 2);
+  const s = parseFloat(localStorage.getItem('lp-quality') || '');
+  if (Number.isFinite(s)) return Math.min(Math.max(s, 0.4), 2);
+  return 1;
 }
 
 const FADE_MS = 320;
@@ -278,8 +285,8 @@ export default function Backdrop({
     let quadVAO: WebGLVertexArrayObject | null = null;
     let hero: HeroHandle | null = null;
     let frameCount = 0;
-    const lens = lensConfig();
-    const quality = heroQuality();
+    let lens = lensConfig();
+    let quality = heroQuality();
     // pointer parallax target, viewport-normalised (-1..1); eased in render
     const pointer: [number, number] = [0, 0];
     let lastPointerMove = 0;
@@ -287,6 +294,9 @@ export default function Backdrop({
     // hidden tab resumes where it left off instead of snapping.
     let elapsed = 0;
     let last = 0;
+    // fps counters for the tuning menu (window.__perf), in EMA form
+    let fpsEMA = 0;
+    let frameEMA = 0;
 
     function shader(type: number, src: string) {
       const g = gl!;
@@ -485,6 +495,17 @@ export default function Backdrop({
       const dt = last ? Math.min((now - last) / 1000, 0.1) : 0.016;
       if (last) elapsed += Math.min((now - last) / 1000, 0.1);
       last = now;
+      if (last && dt > 0) {
+        const fps = 1 / dt;
+        fpsEMA = fpsEMA ? fpsEMA + (fps - fpsEMA) * 0.05 : fps;
+        frameEMA = frameEMA
+          ? frameEMA + (dt * 1000 - frameEMA) * 0.05
+          : dt * 1000;
+        (window as unknown as Record<string, unknown>).__perf = {
+          fps: fpsEMA,
+          ms: frameEMA,
+        };
+      }
 
       // The hero renders first: one composited texture for this frame. Its
       // dark phase also drives the page theme, replacing prefers-color-scheme
@@ -639,10 +660,23 @@ export default function Backdrop({
     };
     window.addEventListener('pointermove', onPointer, { passive: true });
 
+    // The tuning menu changes these live; URL params and localStorage are
+    // re-read so the menu, the address bar and reloads all agree.
+    const onTune = () => {
+      lens = lensConfig();
+      quality = heroQuality();
+      stageW = stageH = 0; // force a resize so the new quality takes now
+      if (lens.tint >= 0)
+        document.body.style.setProperty('--lens-tint', String(lens.tint));
+      else document.body.style.removeProperty('--lens-tint');
+    };
+    window.addEventListener('lp:tune', onTune);
+
     raf = requestAnimationFrame(frame);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('pointermove', onPointer);
+      window.removeEventListener('lp:tune', onTune);
       canvas.removeEventListener('webglcontextlost', onLost);
       canvas.removeEventListener('webglcontextrestored', onRestored);
       hero?.dispose();
