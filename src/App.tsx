@@ -11,6 +11,7 @@ import heatmapIcon from './assets/raw/heatmap.png';
 import eastselfIcon from './assets/raw/eastself.jpg';
 import okdamIcon from './assets/raw/okdam.png';
 import censorIcon from './assets/raw/censor.png';
+import photopeaceIcon from './assets/raw/photopeace.png';
 import gswIcon from './assets/raw/gsw.png';
 import artmuIcon from './assets/raw/artmu.png';
 import artmuDarkIcon from './assets/raw/artmu-dark.png';
@@ -39,6 +40,11 @@ const ENTRIES: DockEntry[] = [
     name: 'censor',
     href: 'https://censor.lost.plus',
     icon: censorIcon,
+  },
+  {
+    name: 'photopeace',
+    href: 'https://photopeace.lost.plus',
+    icon: photopeaceIcon,
   },
   { name: 'gsw', href: 'https://gsw.lost.plus', icon: gswIcon },
   { name: 'setup', href: 'https://setup.lost.plus', icon: setupIcon },
@@ -79,7 +85,7 @@ export default function App() {
     try {
       // bump the version whenever the default order changes, so visitors
       // with a stale saved order get the new default
-      const saved = JSON.parse(localStorage.getItem('dock-order-v2') ?? 'null');
+      const saved = JSON.parse(localStorage.getItem('dock-order-v3') ?? 'null');
       if (!Array.isArray(saved)) return ENTRIES;
       const ordered = saved
         .map((name) => ENTRIES.find((e) => e.name === name))
@@ -100,7 +106,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('dock-order-v2', JSON.stringify(entries.map((e) => e.name)));
+    localStorage.setItem('dock-order-v3', JSON.stringify(entries.map((e) => e.name)));
   }, [entries]);
 
   // three layout regimes by window width:
