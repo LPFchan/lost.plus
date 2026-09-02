@@ -18,6 +18,7 @@ import artmuDarkIcon from './assets/raw/artmu-dark.png';
 import chatIcon from './assets/raw/chat.png';
 import chatLightIcon from './assets/raw/chat-light.png';
 import setupIcon from './assets/raw/setup.png';
+import dashIcon from './assets/raw/dash.png';
 import githubIcon from './assets/raw/github-mark.svg';
 import markfopsIcon from './assets/raw/markfops.png';
 import awareIcon from './assets/raw/aware.png';
@@ -48,6 +49,12 @@ const ENTRIES: DockEntry[] = [
   },
   { name: 'gsw', href: 'https://gsw.lost.plus', icon: gswIcon },
   { name: 'setup', href: 'https://setup.lost.plus', icon: setupIcon },
+  {
+    name: 'dash',
+    href: 'https://dash.lost.plus',
+    icon: dashIcon,
+    treatment: 'preshaped',
+  },
   {
     name: 'chat',
     href: 'https://chat.lost.plus',
