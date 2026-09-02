@@ -30,24 +30,39 @@ ends had grown by different amounts could not be expressed.
 
 ## Backdrop and glass
 
-The background is a slowly drifting mesh gradient — monochrome, warm, five
-soft blobs that differ only in how light they are — and the dock tray (and the
-phone-sized folder grid) are rendered as refracting glass on top of it. Both
-are drawn by `src/Backdrop.tsx` on a single full-screen WebGL2 canvas, adapted
-from the lens on [setup.lost.plus](https://github.com/LPFchan/setup/blob/main/index.html).
+The background is a small procedural landscape — sky, sun and moon, drifting
+clouds, out-of-focus tree branches, and a tit that flies across now and then —
+ported from the hero on
+[anthropic.com/claude-fable-and-mythos-5-1](https://www.anthropic.com/claude-fable-and-mythos-5-1).
+The dock tray (and the phone-sized folder grid) are rendered as refracting
+glass on top of it. Both are drawn on a single full-screen WebGL2 canvas; the
+glass lens is adapted from the one on
+[setup.lost.plus](https://github.com/LPFchan/setup/blob/main/index.html), and
+the scene itself is three.js plus custom GLSL, vendored into `src/hero/`.
+
+The scene rides the sun over Seoul (KST), not the visitor's clock: a NOAA
+solar-position fix gives the sun's elevation and azimuth, and the palette
+mixes continuously between four looks — day, morning, dusk, night — instead
+of snapping between the original's three swatches. When the scene is in its
+dark phase it also flips the page to dark mode (and the dock glass to its
+dark tint), taking over from `prefers-color-scheme`, which only guesses the
+first paint. Almost everything is procedural: the sky dome, the moon, the
+cloud decks, and the tree/leaf generator are pure shader and geometry; the
+only bitmap assets are the bird's GLB and its feather/bark textures in
+`public/fx/hero/`. A post pipeline adds the separable bokeh depth of field,
+ACES tone mapping, vignette and grain.
 
 They have to be one canvas and one draw, or the glass would be bending a
 backdrop one frame stale. Each frame:
 
-1. the gradient, over the whole viewport
-2. the gradient again over just the panel's rect, into a mipmapped buffer
+1. the scene, composited into one offscreen texture by the hero
+2. that texture again over just the panel's rect, into a mipmapped buffer
    (one `generateMipmap` builds the whole frost ladder)
 3. the optics, back over the panel's rect
 
-Because the gradient is drawn by the shader rather than sampled from an image
-or a video, both draws are the same field by construction, and there is no
-per-frame texture upload at all — which is the expensive, fragile part of the
-setup page that this version doesn't need.
+The hero renders into its own render target and the mesh pass samples that
+texture, so both draws read the same frame by construction and there is no
+per-frame texture upload.
 
 The panel elements in the DOM keep only a tint and a lit rim (`.glass-panel`
 in `src/index.css`); the bending happens on the canvas underneath them. Dock
@@ -56,13 +71,11 @@ were never in the texture.
 
 Notes:
 
-- The gradient's two dials are how far each blob travels against how wide it
-  is, and monochrome forces them apart: with no hue to carry the drift, wide
-  blobs just overlap into a constant average and the field sits still. Each
-  blob is tighter than its swing is long so it sweeps *past* a point rather
-  than hovering over it. Tuned so the worst change over any ten seconds is a
-  few levels out of 255 — never visibly animating, clearly somewhere else a
-  minute later.
+- The original's cloud shader parts the deck around the page's hero words
+  (screen-space DOM rects fed in as 'shelters'). This backdrop has no hero
+  text, so that feature is disabled; with no rects fed in it would otherwise
+  carve a hard rectangle into the clouds. The wind, pointer parallax, bird
+  behaviour and depth of field are all kept.
 - `Dock` hands `Backdrop` both candidate panels; the one the 480px breakpoint
   hides measures zero, so the breakpoint stays in the stylesheet only.
 - On narrow windows the whole dock is CSS-scaled. The shader solves the optics
@@ -72,6 +85,9 @@ Notes:
   and a CSS radial-gradient approximation on `body` plus the plain
   `backdrop-filter` panel is the whole effect.
 - `prefers-reduced-motion` parks the drift; the refraction still runs.
+- three.js is code-split (`import('./hero')`) so it streams in after first
+  paint; until it (and then the bird's GLB) is ready the canvas shows a flat
+  field in the same palette family.
 - Don't hand-write `-webkit-` prefixes in `index.css`. lightningcss collapses
   a prefixed/unprefixed pair down to the prefixed one and drops the standard
   property; it adds the prefixes correctly on its own.

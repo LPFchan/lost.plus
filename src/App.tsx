@@ -99,7 +99,13 @@ export default function App() {
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const apply = () => document.documentElement.classList.toggle('dark', mq.matches);
+    // The backdrop's sky rides the sun over Seoul and owns the dark class
+    // once it is running (it marks <html data-sky>); until then the OS
+    // preference is the best guess for the first paint.
+    const apply = () => {
+      if (document.documentElement.hasAttribute('data-sky')) return;
+      document.documentElement.classList.toggle('dark', mq.matches);
+    };
     apply();
     mq.addEventListener('change', apply);
     return () => mq.removeEventListener('change', apply);

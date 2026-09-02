@@ -25,6 +25,7 @@
 // outright.
 
 import { RefObject, useEffect, useRef } from 'react';
+import type { HeroHandle } from './hero';
 
 /** A panel that should be rendered as glass. */
 export type GlassTarget = {
@@ -41,34 +42,18 @@ const DISP = 26; // peak displacement
 const IOR = 1.5;
 const LOD = 2.0; // frost: mip level the optics sample at
 const FADE_MS = 320;
-const FROZEN_T = 12; // where the drift parks under prefers-reduced-motion
-
 /**
- * Monochrome, warm. Every blob is the same hue as the base and differs only in
- * how light it is, so the field reads as soft moving light on one warm surface
- * rather than as colour. With no hue left to carry the drift, the lightness
- * spread has to be wider than a tinted palette would need — otherwise nothing
- * moves that the eye can see.
+ * The backdrop is now the ported Fable hero scene (see src/hero). The mesh
+ * pass samples its composited output texture; the lens pass is unchanged, so
+ * the dock glass refracts the sky, clouds, trees and bird exactly as it used
+ * to refract the gradient.
+ *
+ * Glass optics still need a bright/dark split: the rim light that sells the
+ * refraction is dark on a bright sky and pale on a night one.
  */
-const PALETTES = {
-  light: {
-    base: '#f6f5f2',
-    blobs: ['#fffdf7', '#e3ded1', '#fdfaf2', '#dcd7c9', '#fffef8'],
-    // A glass edge on a pale surface reads as a grey line, not a bright one.
-    edge: '#b4b1ac',
-    fres: 0.5,
-    spec: 0.18,
-  },
-  dark: {
-    // Dark ramps need a larger absolute step than pale ones before the eye
-    // sees them at all, so these sit further from the base than the light
-    // blobs do while reading just as quietly.
-    base: '#151413',
-    blobs: ['#343029', '#1a1815', '#3d372c', '#201d18', '#0a0a09'],
-    edge: '#f0ece2',
-    fres: 0.35,
-    spec: 0.24,
-  },
+const GLASS_TINT = {
+  bright: { edge: '#b4b1ac', fres: 0.5, spec: 0.18 },
+  dark: { edge: '#f0ece2', fres: 0.35, spec: 0.24 },
 } as const;
 
 type Rgb = [number, number, number];
@@ -78,22 +63,18 @@ function rgb(hex: string): Rgb {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-type Palette = { base: Rgb; blobs: Rgb[]; edge: Rgb; fres: number; spec: number };
+type GlassPal = { edge: Rgb; fres: number; spec: number };
 
-const PAL: Record<'light' | 'dark', Palette> = {
+const PAL: Record<'light' | 'dark', GlassPal> = {
   light: {
-    base: rgb(PALETTES.light.base),
-    blobs: PALETTES.light.blobs.map(rgb),
-    edge: rgb(PALETTES.light.edge),
-    fres: PALETTES.light.fres,
-    spec: PALETTES.light.spec,
+    edge: rgb(GLASS_TINT.bright.edge),
+    fres: GLASS_TINT.bright.fres,
+    spec: GLASS_TINT.bright.spec,
   },
   dark: {
-    base: rgb(PALETTES.dark.base),
-    blobs: PALETTES.dark.blobs.map(rgb),
-    edge: rgb(PALETTES.dark.edge),
-    fres: PALETTES.dark.fres,
-    spec: PALETTES.dark.spec,
+    edge: rgb(GLASS_TINT.dark.edge),
+    fres: GLASS_TINT.dark.fres,
+    spec: GLASS_TINT.dark.spec,
   },
 };
 
@@ -101,54 +82,24 @@ const VERT = `#version 300 es
   in vec2 a;
   void main() { gl_Position = vec4(a, 0.0, 1.0); }`;
 
-// The gradient. Drawn twice per frame at two different pixel windows onto the
-// same viewport-space field — full screen for the backdrop, the panel's rect
-// for the buffer the optics read — so the two are the same image by
-// construction, not by keeping two clocks in step.
+// The hero frame, drawn twice per frame at two different pixel windows —
+// full screen for the backdrop, the panel's rect into the mipmapped buffer
+// the optics read — so the two are the same image by construction, not by
+// keeping two clocks in step.
 const FRAG_MESH = `#version 300 es
   precision highp float;
+  uniform sampler2D uScene;
   uniform vec2 uSize;      // this draw target, device px
   uniform vec2 uOrigin;    // its top-left corner, viewport CSS px
   uniform vec2 uViewport;  // the viewport, CSS px
-  uniform float uDpr, uTime;
-  uniform vec3 uBase, uC0, uC1, uC2, uC3, uC4;
+  uniform float uDpr;
   out vec4 o;
 
-  // Gaussian falloff, so a blob has no edge anywhere and there is nothing for
-  // the ramp to band against.
-  vec3 blob(vec3 c, vec3 col, vec2 p, vec2 at, float r) {
-    vec2 d = p - at;
-    return mix(c, col, exp(-dot(d, d) / (r * r)));
-  }
-
   void main() {
-    // gl_FragCoord is y-up in this target; the field is addressed in top-down
-    // viewport CSS pixels, which is the space both draws share.
     vec2 px = vec2(gl_FragCoord.x, uSize.y - gl_FragCoord.y) / uDpr + uOrigin;
     vec2 uv = px / uViewport;
-    float a = uViewport.x / uViewport.y;   // keep blobs round, not stretched
-    vec2 p = vec2(uv.x * a, uv.y);
-    float t = uTime;
-
-    // Five loops on frequencies that share no common period, so the field never
-    // visibly repeats. The dials are travel against radius, and monochrome
-    // forces them apart: with no hue to carry the drift, five wide blobs just
-    // overlap into a constant average and the field sits still. So each blob is
-    // tighter than its swing is long, and actually sweeps past a given point
-    // rather than hovering over it. Rates are low enough that the worst change
-    // over ten seconds is a few levels out of 255 — you never catch it moving,
-    // but the light is somewhere else whenever you look back.
-    vec3 c = uBase;
-    c = blob(c, uC0, p, vec2(0.18 * a + 0.34 * sin(t * 0.041), 0.22 + 0.30 * cos(t * 0.053)), 0.46);
-    c = blob(c, uC1, p, vec2(0.86 * a + 0.32 * cos(t * 0.034), 0.20 + 0.33 * sin(t * 0.047)), 0.44);
-    c = blob(c, uC2, p, vec2(0.78 * a + 0.36 * sin(t * 0.028), 0.80 + 0.29 * cos(t * 0.039)), 0.50);
-    c = blob(c, uC3, p, vec2(0.20 * a + 0.30 * cos(t * 0.049), 0.82 + 0.32 * sin(t * 0.032)), 0.45);
-    c = blob(c, uC4, p, vec2(0.50 * a + 0.40 * sin(t * 0.023), 0.50 + 0.35 * cos(t * 0.019)), 0.42);
-
-    // Ramps this soft cross a whole screen in a handful of 8-bit steps and
-    // would band into visible stripes; a pixel-sized dither scatters the step.
-    float n = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
-    o = vec4(c + (n - 0.5) / 255.0, 1.0);
+    // the hero's render target is bottom-up; the frame is addressed top-down
+    o = vec4(texture(uScene, vec2(uv.x, 1.0 - uv.y)).rgb, 1.0);
   }`;
 
 const FRAG_LENS = `#version 300 es
@@ -218,8 +169,7 @@ const FRAG_LENS = `#version 300 es
   }`;
 
 const MESH_UNIFORMS = [
-  'uSize', 'uOrigin', 'uViewport', 'uDpr', 'uTime',
-  'uBase', 'uC0', 'uC1', 'uC2', 'uC3', 'uC4',
+  'uScene', 'uSize', 'uOrigin', 'uViewport', 'uDpr',
 ] as const;
 
 const LENS_UNIFORMS = [
@@ -262,7 +212,6 @@ export default function Backdrop({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     let gl: WebGL2RenderingContext | null = null;
     let meshProg: Program | null = null;
     let lensProg: Program | null = null;
@@ -275,6 +224,11 @@ export default function Backdrop({
     let maxTex = 0;
     let raf = 0;
     let fadeAt = 0;
+    let quadVAO: WebGLVertexArrayObject | null = null;
+    let hero: HeroHandle | null = null;
+    let frameCount = 0;
+    // pointer parallax target, viewport-normalised (-1..1); eased in render
+    const pointer: [number, number] = [0, 0];
     // The drift is integrated rather than read off the clock, so pausing for a
     // hidden tab resumes where it left off instead of snapping.
     let elapsed = 0;
@@ -316,15 +270,45 @@ export default function Backdrop({
       });
       if (!gl) return false;
 
+      // The hero scene shares this GL context; it renders its own passes
+      // into offscreen targets and hands back one composited texture. three.js
+      // is heavy, so it streams in after first paint; the mesh pass shows the
+      // flat fallback field until the module (and then the GLB) is ready.
+      const g = gl;
+      import('./hero')
+        .then(({ createHero }) => {
+          // The context may have been lost/recreated while the module loaded.
+          if (gl !== g || !g || g.isContextLost()) return;
+          try {
+            hero = createHero(g, canvas!, { assets: '/fx/hero/' });
+            hero.resize(
+              window.innerWidth,
+              window.innerHeight,
+              Math.min(window.devicePixelRatio || 1, 2),
+            );
+          } catch (err) {
+            console.error('[backdrop] hero init failed', err);
+            hero = null;
+          }
+        })
+        .catch((err) => console.error('[backdrop] hero module failed', err));
+
       meshProg = program(FRAG_MESH, MESH_UNIFORMS);
       lensProg = program(FRAG_LENS, LENS_UNIFORMS);
       if (!meshProg || !lensProg) {
+        hero?.dispose();
+        hero = null;
         gl = null;
         return false;
       }
       maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE);
 
       const buf = gl.createBuffer();
+      // three binds its own VAOs during the hero passes and its state reset
+      // disables attribute 0, so this quad needs its own VAO instead of
+      // relying on the default vertex-array state set up once here.
+      quadVAO = gl.createVertexArray();
+      gl.bindVertexArray(quadVAO);
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       gl.bufferData(
         gl.ARRAY_BUFFER,
@@ -333,6 +317,7 @@ export default function Backdrop({
       );
       gl.enableVertexAttribArray(0);
       gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+      gl.bindVertexArray(null);
       // The lens feathers its own edge against the gradient underneath.
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -370,7 +355,7 @@ export default function Backdrop({
     }
 
     function drawMesh(
-      pal: Palette,
+      sceneTex: WebGLTexture | null,
       W: number,
       H: number,
       originX: number,
@@ -378,23 +363,41 @@ export default function Backdrop({
       VW: number,
       VH: number,
       dpr: number,
-      t: number,
     ) {
       const g = gl!;
       const u = meshProg!.u;
       g.useProgram(meshProg!.p);
+      // The caller owns the framebuffer: pass 1 draws to the canvas, pass 2
+      // draws into the mip FBO. Binding null here used to stomp pass 2's FBO
+      // and paint the lens strip across the bottom of the screen — the seam.
+      g.viewport(0, 0, W, H);
+      g.bindVertexArray(quadVAO);
+      g.activeTexture(g.TEXTURE0);
+      g.bindTexture(g.TEXTURE_2D, sceneTex);
+      g.uniform1i(u.uScene, 0);
       g.uniform2f(u.uSize, W, H);
       g.uniform2f(u.uOrigin, originX, originY);
       g.uniform2f(u.uViewport, VW, VH);
       g.uniform1f(u.uDpr, dpr);
-      g.uniform1f(u.uTime, t);
-      g.uniform3fv(u.uBase, pal.base);
-      g.uniform3fv(u.uC0, pal.blobs[0]);
-      g.uniform3fv(u.uC1, pal.blobs[1]);
-      g.uniform3fv(u.uC2, pal.blobs[2]);
-      g.uniform3fv(u.uC3, pal.blobs[3]);
-      g.uniform3fv(u.uC4, pal.blobs[4]);
       g.drawArrays(g.TRIANGLE_STRIP, 0, 4);
+      g.bindVertexArray(null);
+    }
+
+    function drawFallbackField(
+      W: number,
+      H: number,
+      VW: number,
+      VH: number,
+      dpr: number,
+      dark: boolean,
+    ) {
+      // no hero (GLTF/textures still loading or creation failed): a flat
+      // field in the same palette family, so the glass still has something
+      // quiet to bend
+      const g = gl!;
+      void W; void H; void VW; void VH; void dpr;
+      g.clearColor(dark ? 0.05 : 0.93, dark ? 0.07 : 0.92, dark ? 0.13 : 0.87, 1);
+      g.clear(g.COLOR_BUFFER_BIT);
     }
 
     function frame(now: number) {
@@ -412,26 +415,52 @@ export default function Backdrop({
         canvas!.height = CH;
         stageW = CW;
         stageH = CH;
+        hero?.resize(VW, VH, dpr);
       }
 
+      // Cap the step so a long stall (tab wake, GC pause) advances the drift
+      // by one frame rather than teleporting it.
+      const dt = last ? Math.min((now - last) / 1000, 0.1) : 0.016;
+      if (last) elapsed += Math.min((now - last) / 1000, 0.1);
+      last = now;
+
+      // The hero renders first: one composited texture for this frame. Its
+      // dark phase also drives the page theme, replacing prefers-color-scheme
+      // as the source of truth (App defers to the scene when it is running).
+      let sceneTex: WebGLTexture | null = null;
+      if (hero) {
+        hero.renderFrame(dt, elapsed, pointer);
+        // three only allocates the GL texture for a render-target texture
+        // lazily; properties.get() is what does it. (initTexture no-ops on
+        // render-target textures, and __webglTexture alone stays undefined.)
+        const props = hero.renderer.properties.get(hero.finalRT.texture) as {
+          __webglTexture?: WebGLTexture;
+        };
+        sceneTex = props.__webglTexture ?? hero.finalRT.texture.__webglTexture ?? null;
+        const dark = hero.isDark();
+        // The sky is the source of truth for the theme from here on; App's
+        // prefers-color-scheme fallback defers once this attribute is set.
+        if (!document.documentElement.hasAttribute('data-sky'))
+          document.documentElement.setAttribute('data-sky', '');
+        if (document.documentElement.classList.contains('dark') !== dark)
+          document.documentElement.classList.toggle('dark', dark);
+        frameCount++;
+      }
       const pal = document.documentElement.classList.contains('dark')
         ? PAL.dark
         : PAL.light;
-      // Cap the step so a long stall (tab wake, GC pause) advances the drift
-      // by one frame rather than teleporting it.
-      if (last) elapsed += Math.min((now - last) / 1000, 0.1);
-      last = now;
-      const t = reduced.matches ? FROZEN_T : elapsed;
 
-      // Pass 1: the gradient, over the whole viewport. Redrawing all of it is
+      // Pass 1: the hero frame, over the whole viewport. Redrawing all of it is
       // also what erases the panel's previous footprint — a single quad is far
       // cheaper on the GPU than tracking damage rects on the CPU.
       g.disable(g.BLEND);
       g.disable(g.SCISSOR_TEST);
       g.bindFramebuffer(g.FRAMEBUFFER, null);
       g.viewport(0, 0, CW, CH);
-      drawMesh(pal, CW, CH, 0, 0, VW, VH, dpr, t);
-
+      g.clearColor(0, 0, 0, 1);
+      g.clear(g.COLOR_BUFFER_BIT);
+      if (sceneTex) drawMesh(sceneTex, CW, CH, 0, 0, VW, VH, dpr);
+      else drawFallbackField(CW, CH, VW, VH, dpr, pal === PAL.dark);
       // Whichever candidate panel is on screen. The rect already has the
       // dock's springs, its zoom and the icon magnification folded in, so
       // measuring every frame is what keeps the glass welded to it.
@@ -456,13 +485,19 @@ export default function Backdrop({
       const H = Math.round(h * dpr);
       if (W < 1 || H < 1 || W > maxTex || H > maxTex) return;
 
-      // Pass 2: the same rect of the same field, into the mip pyramid.
+      // Pass 2: the same rect of the same frame, into the mip pyramid.
       sizeFBO(W, H);
       g.bindFramebuffer(g.FRAMEBUFFER, fbo);
       g.viewport(0, 0, W, H);
-      drawMesh(pal, W, H, vx, vy, VW, VH, dpr, t);
-      g.bindTexture(g.TEXTURE_2D, fboTex);
-      g.generateMipmap(g.TEXTURE_2D); // the whole frost ladder, one call
+      if (sceneTex) {
+        drawMesh(sceneTex, W, H, vx, vy, VW, VH, dpr);
+        g.bindTexture(g.TEXTURE_2D, fboTex);
+        g.generateMipmap(g.TEXTURE_2D); // the whole frost ladder, one call
+      } else {
+        drawFallbackField(W, H, VW, VH, dpr, pal === PAL.dark);
+        g.bindTexture(g.TEXTURE_2D, fboTex);
+        g.generateMipmap(g.TEXTURE_2D);
+      }
 
       if (!fadeAt) fadeAt = now;
       const fade = Math.min((now - fadeAt) / FADE_MS, 1);
@@ -500,7 +535,9 @@ export default function Backdrop({
       g.uniform1f(u.uFres, pal.fres);
       g.uniform3fv(u.uEdge, pal.edge);
       g.uniform1f(u.uFade, fade);
+      g.bindVertexArray(quadVAO);
       g.drawArrays(g.TRIANGLE_STRIP, 0, 4);
+      g.bindVertexArray(null);
       g.disable(g.SCISSOR_TEST);
       g.disable(g.BLEND);
     }
@@ -512,6 +549,8 @@ export default function Backdrop({
 
     const onLost = (e: Event) => {
       e.preventDefault();
+      hero?.dispose();
+      hero = null;
       gl = null;
       // The canvas is the background, so it has to get out of the way and let
       // the CSS gradient show again — not just drop the glass.
@@ -526,20 +565,22 @@ export default function Backdrop({
     canvas.addEventListener('webglcontextlost', onLost);
     canvas.addEventListener('webglcontextrestored', onRestored);
 
-    // A hidden tab still gets rAF in some engines; stop drawing either way.
-    const onVisibility = () => {
-      cancelAnimationFrame(raf);
-      last = 0;
-      if (!document.hidden) raf = requestAnimationFrame(frame);
+    // rAF-driven; a hidden tab throttles it on its own, and the long-stall
+    // dt cap in frame() keeps the resume from jumping.
+
+    const onPointer = (e: PointerEvent) => {
+      pointer[0] = (e.clientX / window.innerWidth) * 2 - 1;
+      pointer[1] = (e.clientY / window.innerHeight) * 2 - 1;
     };
-    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pointermove', onPointer, { passive: true });
 
     raf = requestAnimationFrame(frame);
     return () => {
       cancelAnimationFrame(raf);
-      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pointermove', onPointer);
       canvas.removeEventListener('webglcontextlost', onLost);
       canvas.removeEventListener('webglcontextrestored', onRestored);
+      hero?.dispose();
       document.body.classList.remove('lensing');
     };
   }, [glass]);

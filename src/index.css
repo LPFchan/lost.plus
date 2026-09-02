@@ -16,10 +16,10 @@ body,
   height: 100%;
 }
 
-/* Fallback mesh gradient. The WebGL backdrop covers this whenever it runs
-   (its canvas is opaque), so these radial stops are only ever seen when there
-   is no WebGL2 — a blocklisted GPU, a VM, acceleration switched off. Kept in
-   the same quiet palette as the shader so the two read as the same design. */
+/* Fallback for when the WebGL sky cannot run. The backdrop canvas covers this
+   whenever it renders (it is opaque), so these stops are only ever seen with
+   no WebGL2 — a blocklisted GPU, a VM, acceleration switched off. Kept quiet
+   and neutral so the glass dock still reads on top of it. */
 body {
   margin: 0;
   background-color: #f6f5f2;
