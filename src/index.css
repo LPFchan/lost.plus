@@ -288,11 +288,22 @@ body.lensing .glass-panel {
   display: flex;
   flex-direction: column;
   gap: 1px;
+  /* the whole field is a scrubber: drag sideways to change the value,
+     click to type it. Grabbing cursor and no selection while scrubbing. */
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: none;
 }
 
 .tune-lens-field span {
   font-size: 10px;
   opacity: 0.65;
+}
+
+/* the wrapper is user-select:none so scrubbing never highlights; typing
+   still needs selection inside the input itself */
+.tune-lens-field input {
+  user-select: text;
 }
 
 .tune-lens-field input {
@@ -321,4 +332,3 @@ body.lensing .glass-panel {
 .dark .tune-reset {
   border-color: rgb(255 255 255 / 0.2);
 }
-

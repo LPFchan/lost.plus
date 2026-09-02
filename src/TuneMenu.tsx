@@ -43,11 +43,40 @@ function setLS(key: string, value: string) {
   window.dispatchEvent(new Event('lp:tune'));
 }
 
-function lensParts(): string[] {
+// One lens parameter: where it sits in the stored array, its default, the
+// drag range and how finely a pixel of dragging moves it.
+type LensField = {
+  key: number;
+  label: string;
+  def: number;
+  min: number;
+  max: number;
+  step: number;
+  digits: number; // decimals shown; -1 means "leave empty"
+  emptyDef?: boolean; // default is "not set", shown blank
+};
+
+const LENS_FIELDS: LensField[] = [
+  { key: 0, label: 'bleed', def: 140, min: 0, max: 400, step: 1, digits: 0 },
+  { key: 1, label: 'thick', def: 90, min: 4, max: 200, step: 0.5, digits: 0 },
+  { key: 2, label: 'disp', def: 110, min: 0, max: 300, step: 1, digits: 0 },
+  { key: 3, label: 'ior', def: 1.45, min: 1.0, max: 2.5, step: 0.005, digits: 2 },
+  { key: 4, label: 'lod', def: 1.0, min: 0, max: 5, step: 0.02, digits: 1 },
+  { key: 5, label: 'tint', def: -1, min: -1, max: 1, step: 0.01, digits: 2, emptyDef: true },
+];
+
+function fmt(f: LensField, v: number): string {
+  return v.toFixed(f.digits);
+}
+
+// The stored string keeps six slots; empty slots mean "default".
+function readLens(): string[] {
   const raw = getLS('lp-lens');
   const parts = raw ? raw.split(',') : [];
-  while (parts.length < 6) parts.push('');
-  return parts.slice(0, 6);
+  return LENS_FIELDS.map((f, i) => {
+    const v = parseFloat(parts[i] ?? '');
+    return Number.isFinite(v) ? fmt(f, v) : '';
+  });
 }
 
 function writeLens(parts: string[]) {
@@ -56,14 +85,10 @@ function writeLens(parts: string[]) {
   setLS('lp-lens', out.join(','));
 }
 
-const LENS_FIELDS = [
-  { key: 0, label: 'bleed', placeholder: '140' },
-  { key: 1, label: 'thick', placeholder: '90' },
-  { key: 2, label: 'disp', placeholder: '110' },
-  { key: 3, label: 'ior', placeholder: '1.45' },
-  { key: 4, label: 'lod', placeholder: '1.0' },
-  { key: 5, label: 'tint', placeholder: '-1' },
-] as const;
+function numOr(f: LensField, s: string): number {
+  const v = parseFloat(s);
+  return Number.isFinite(v) ? v : f.def;
+}
 
 export default function TuneMenu() {
   const [open, setOpen] = useState(false);
@@ -72,8 +97,9 @@ export default function TuneMenu() {
   const [quality, setQuality] = useState(() => getLS('lp-quality', '1'));
   const [sun, setSun] = useState(() => getLS('lp-sun'));
   const [cloud, setCloud] = useState(() => getLS('lp-cloud'));
-  const [lens, setLens] = useState<string[]>(lensParts);
+  const [lens, setLens] = useState<string[]>(readLens);
   const seqRef = useRef(0);
+  const dragRef = useRef<{ i: number; startX: number; startV: number; moved: boolean } | null>(null);
 
   // Rolling prefix match. A wrong key restarts the match; if that key is
   // the first of the sequence it counts as a new start.
@@ -112,15 +138,48 @@ export default function TuneMenu() {
     setCloud(v);
     setLS('lp-cloud', v);
   }, []);
-  const applyLens = useCallback(
-    (i: number, v: string) => {
-      const next = [...lens];
+
+  const applyLens = useCallback((i: number, v: string) => {
+    setLens((prev) => {
+      const next = [...prev];
       next[i] = v;
-      setLens(next);
       writeLens(next);
-    },
-    [lens],
-  );
+      return next;
+    });
+  }, []);
+
+  // Drag-to-scrub: press on the value, drag right to increase, left to
+  // decrease. A press that never moves is a click and focuses the input
+  // for typing instead, so both gestures share one control.
+  const onLensPointerDown = (i: number) => (e: React.PointerEvent) => {
+    const f = LENS_FIELDS[i];
+    dragRef.current = { i, startX: e.clientX, startV: numOr(f, lens[i]), moved: false };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onLensPointerMove = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const f = LENS_FIELDS[d.i];
+    const dx = e.clientX - d.startX;
+    if (!d.moved && Math.abs(dx) < 3) return; // click slop
+    d.moved = true;
+    const range = f.max - f.min;
+    const per = range / 200; // 200px of drag crosses the whole range
+    let v = d.startV + dx * per;
+    v = Math.round(v / f.step) * f.step;
+    v = Math.min(f.max, Math.max(f.min, v));
+    applyLens(d.i, fmt(f, v));
+  };
+  const onLensPointerUp = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (d && !d.moved) {
+      // treat as a click: focus for typing and select the value
+      const input = (e.currentTarget as HTMLElement).querySelector('input');
+      input?.focus();
+      input?.select();
+    }
+  };
 
   const resetAll = () => {
     for (const k of ['lp-quality', 'lp-sun', 'lp-cloud', 'lp-lens'])
@@ -128,7 +187,7 @@ export default function TuneMenu() {
     setQuality('1');
     setSun('');
     setCloud('');
-    setLens(lensParts());
+    setLens(readLens());
     window.dispatchEvent(new Event('lp:tune'));
   };
 
@@ -174,12 +233,24 @@ export default function TuneMenu() {
       <button className="tune-link" onClick={() => applyCloud('')}>auto coverage</button>
 
       <div className="tune-lens">
-        {LENS_FIELDS.map((f) => (
-          <label key={f.key} className="tune-lens-field">
+        {LENS_FIELDS.map((f, i) => (
+          <div
+            key={f.key}
+            className="tune-lens-field"
+            onPointerDown={onLensPointerDown(i)}
+            onPointerMove={onLensPointerMove}
+            onPointerUp={onLensPointerUp}
+            title="drag to scrub, click to type"
+          >
             <span>{f.label}</span>
-            <input type="text" inputMode="decimal" value={lens[f.key]}
-              placeholder={f.placeholder} onChange={(e) => applyLens(f.key, e.target.value)} />
-          </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={lens[i]}
+              placeholder={f.emptyDef ? 'auto' : fmt(f, f.def)}
+              onChange={(e) => applyLens(i, e.target.value)}
+            />
+          </div>
         ))}
       </div>
 
