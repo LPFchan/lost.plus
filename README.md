@@ -86,7 +86,7 @@ Notes:
   `backdrop-filter` panel is the whole effect.
 - `prefers-reduced-motion` parks the drift; the refraction still runs.
 - Two frame-rate escapes: the hero renders at an internal resolution scaled by
-  `?quality=` (default 1; 0.6-0.8 is a good weak-GPU setting), and when the
+  `?quality=` (default 0.7; 0.6-0.8 is the weak-GPU band, 1 is full), and when the
   pointer has been idle for four seconds the whole canvas drops to 30fps - the
   only motion left at that point is wind, clouds and the sun's crawl, none of
   which need 60. A pointer move returns to full rate within a frame.

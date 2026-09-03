@@ -82,12 +82,12 @@ function lensConfig(): LensConfig {
  */
 function heroQuality(): number {
   const q = parseFloat(
-    new URLSearchParams(location.search).get('quality') || '',
+   new URLSearchParams(location.search).get('quality') || '',
   );
   if (Number.isFinite(q)) return Math.min(Math.max(q, 0.4), 2);
   const s = parseFloat(localStorage.getItem('lp-quality') || '');
   if (Number.isFinite(s)) return Math.min(Math.max(s, 0.4), 2);
-  return 1;
+  return 0.7; // the scene upsamples; below ~0.6 the leaves turn mushy
 }
 
 const FADE_MS = 320;

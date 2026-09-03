@@ -94,7 +94,7 @@ export default function TuneMenu() {
   const [open, setOpen] = useState(false);
   const [progress, setProgress] = useState(0);
   const [perf, setPerf] = useState<Perf | null>(null);
-  const [quality, setQuality] = useState(() => getLS('lp-quality', '1'));
+  const [quality, setQuality] = useState(() => getLS('lp-quality', '0.7'));
   const [sun, setSun] = useState(() => getLS('lp-sun'));
   const [cloud, setCloud] = useState(() => getLS('lp-cloud'));
   const [lens, setLens] = useState<string[]>(readLens);
@@ -184,7 +184,7 @@ export default function TuneMenu() {
   const resetAll = () => {
     for (const k of ['lp-quality', 'lp-sun', 'lp-cloud', 'lp-lens'])
       localStorage.removeItem(k);
-    setQuality('1');
+    setQuality('0.7');
     setSun('');
     setCloud('');
     setLens(readLens());
@@ -215,7 +215,7 @@ export default function TuneMenu() {
       <label className="tune-row">
         <span>quality {quality}</span>
         <input type="range" min="0.4" max="2" step="0.05"
-          value={quality || '1'} onChange={(e) => applyQuality(e.target.value)} />
+          value={quality || '0.7'} onChange={(e) => applyQuality(e.target.value)} />
       </label>
 
       <label className="tune-row">
