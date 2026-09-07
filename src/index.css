@@ -16,30 +16,23 @@ body,
   height: 100%;
 }
 
-/* Fallback for when the WebGL sky cannot run. The backdrop canvas covers this
-   whenever it renders (it is opaque), so these stops are only ever seen with
-   no WebGL2 — a blocklisted GPU, a VM, acceleration switched off. Kept quiet
-   and neutral so the glass dock still reads on top of it. */
+/* A rendered frame of the real sky sits on the document itself. The opaque
+   WebGL canvas covers it in-page, while Safari can expose this document
+   background beneath its translucent status and tab bars. It also remains a
+   faithful fallback when WebGL cannot run. */
 body {
   margin: 0;
   background-color: #f6f5f2;
-  background-image:
-    radial-gradient(56% 50% at 18% 22%, #fffdf7 0%, transparent 72%),
-    radial-gradient(54% 48% at 86% 20%, #e3ded1 0%, transparent 72%),
-    radial-gradient(60% 54% at 78% 80%, #fdfaf2 0%, transparent 72%),
-    radial-gradient(55% 49% at 20% 82%, #dcd7c9 0%, transparent 72%),
-    radial-gradient(50% 46% at 50% 50%, #fffef8 0%, transparent 72%);
+  background-image: url('/backdrop-day.webp');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
   background-attachment: fixed;
 }
 
 .dark body {
   background-color: #151413;
-  background-image:
-    radial-gradient(56% 50% at 18% 22%, #343029 0%, transparent 72%),
-    radial-gradient(54% 48% at 86% 20%, #1a1815 0%, transparent 72%),
-    radial-gradient(60% 54% at 78% 80%, #3d372c 0%, transparent 72%),
-    radial-gradient(55% 49% at 20% 82%, #201d18 0%, transparent 72%),
-    radial-gradient(50% 46% at 50% 50%, #0a0a09 0%, transparent 72%);
+  background-image: url('/backdrop-night.webp');
 }
 
 /* The shader draws the background *and* the glass, so it sits behind

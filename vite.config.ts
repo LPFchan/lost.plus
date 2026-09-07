@@ -44,7 +44,7 @@ export default defineConfig({
       },
       workbox: {
         // single-page launcher: cache the whole build, serve offline
-        globPatterns: ['**/*.{js,css,html,png,svg,jpg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,png,svg,jpg,webp,woff2}'],
         navigateFallback: 'index.html',
       },
     }),

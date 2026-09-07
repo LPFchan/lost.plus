@@ -120,7 +120,9 @@ The site is installable as a PWA (standalone window, offline-capable) via
 - The standalone iOS app uses a translucent status bar and `viewport-fit=cover`,
   allowing the backdrop to fill the screen behind the system status icons.
   Safari's browser chrome uses a solid theme color that follows the scene's
-  light or dark phase rather than the device appearance.
+  light or dark phase rather than the device appearance. Rendered day and
+  night frames on the document background let translucent Safari chrome show
+  the scene beneath it when supported, and serve as the no-WebGL fallback.
 - Icons live in `public/` (not `src/assets/`, so they keep stable
   un-hashed URLs): `pwa-192x192.png` / `pwa-512x512.png` (standard),
   `maskable-*.png` (icon scaled to 80% on a `#f6f5f2` canvas, inside the
