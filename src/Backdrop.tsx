@@ -105,6 +105,11 @@ const GLASS_TINT = {
   dark: { edge: '#f0ece2', fres: 0.35, spec: 0.24 },
 } as const;
 
+const THEME_COLOR = {
+  light: '#f6f5f2',
+  dark: '#151413',
+} as const;
+
 type Rgb = [number, number, number];
 
 function rgb(hex: string): Rgb {
@@ -521,12 +526,15 @@ export default function Backdrop({
         };
         sceneTex = props.__webglTexture ?? hero.finalRT.texture.__webglTexture ?? null;
         const dark = hero.isDark();
-        // The sky is the source of truth for the theme from here on; App's
-        // prefers-color-scheme fallback defers once this attribute is set.
+        // The sky is the source of truth for the page and browser chrome.
         if (!document.documentElement.hasAttribute('data-sky'))
           document.documentElement.setAttribute('data-sky', '');
-        if (document.documentElement.classList.contains('dark') !== dark)
+        if (document.documentElement.classList.contains('dark') !== dark) {
           document.documentElement.classList.toggle('dark', dark);
+          document
+            .querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+            ?.setAttribute('content', dark ? THEME_COLOR.dark : THEME_COLOR.light);
+        }
         frameCount++;
       }
       const pal = document.documentElement.classList.contains('dark')
