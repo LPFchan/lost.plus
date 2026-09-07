@@ -14,7 +14,7 @@ export default defineConfig({
         name: 'lost.plus',
         short_name: 'lost.plus',
         description: 'A macOS-dock-style launcher for the web services I host.',
-        theme_color: '#f6f5f2',
+        theme_color: undefined,
         background_color: '#f6f5f2',
         display: 'standalone',
         icons: [

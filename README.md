@@ -120,7 +120,8 @@ The site is installable as a PWA (standalone window, offline-capable) via
 - `index.html` requests an edge-to-edge standalone viewport with
   `black-translucent` and `viewport-fit=cover`. Rendered day and night frames
   live on the root canvas for WebKit's outside-viewport painting and serve as
-  the no-WebGL fallback.
+  the no-WebGL fallback. The manifest deliberately omits `theme_color` so
+  Safari can derive those outside-viewport areas from the root background.
 - Icons live in `public/` (not `src/assets/`, so they keep stable
   un-hashed URLs): `pwa-192x192.png` / `pwa-512x512.png` (standard),
   `maskable-*.png` (icon scaled to 80% on a `#f6f5f2` canvas, inside the
