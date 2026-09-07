@@ -117,6 +117,8 @@ The site is installable as a PWA (standalone window, offline-capable) via
 - Service worker is registered in `src/main.tsx` with
   `registerSW({ immediate: true })` and `registerType: 'autoUpdate'`, so
   returning visitors pick up new deploys automatically.
+- The standalone iOS app uses a translucent status bar and `viewport-fit=cover`,
+  allowing the backdrop to fill the screen behind the system status icons.
 - Icons live in `public/` (not `src/assets/`, so they keep stable
   un-hashed URLs): `pwa-192x192.png` / `pwa-512x512.png` (standard),
   `maskable-*.png` (icon scaled to 80% on a `#f6f5f2` canvas, inside the
