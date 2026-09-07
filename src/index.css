@@ -4,10 +4,17 @@
 
 :root {
   color-scheme: light;
+  background-color: #f6f5f2;
+  background-image: url('/backdrop-day.webp');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 :root.dark {
   color-scheme: dark;
+  background-color: #151413;
+  background-image: url('/backdrop-night.webp');
 }
 
 html,
@@ -16,23 +23,13 @@ body,
   height: 100%;
 }
 
-/* A rendered frame of the real sky sits on the document itself. The opaque
-   WebGL canvas covers it in-page, while Safari can expose this document
-   background beneath its translucent status and tab bars. It also remains a
-   faithful fallback when WebGL cannot run. */
+/* The root canvas owns a rendered frame of the real sky. The opaque WebGL
+   canvas covers it in-page, and the frame remains a faithful fallback when
+   WebGL cannot run. Keeping it on html also makes it available to WebKit when
+   the browser paints outside the layout viewport. */
 body {
   margin: 0;
-  background-color: #f6f5f2;
-  background-image: url('/backdrop-day.webp');
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-attachment: fixed;
-}
-
-.dark body {
-  background-color: #151413;
-  background-image: url('/backdrop-night.webp');
+  background: transparent;
 }
 
 /* The shader draws the background *and* the glass, so it sits behind
