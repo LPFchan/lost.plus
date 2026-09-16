@@ -435,18 +435,14 @@ body.lensing .glass-panel {
   overflow: visible;
 }
 
-/* the row's block (head, and card when open) is laid out at the resting
-   size and scaled to fill whatever height the row has grown to */
-.v2-row-inner {
-  transform-origin: left top;
-  will-change: transform;
-}
-
+/* the head is laid out at the resting size and scaled to fill whatever
+   height it has grown to; a card's lines likewise (.v2-line) */
 .v2-head {
   display: flex;
   align-items: center;
   gap: 14px;
   height: var(--size);
+  transform-origin: left top;
   color: inherit;
   text-decoration: none;
   font-size: 17px;
@@ -476,21 +472,25 @@ body.lensing .glass-panel {
   filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.7));
 }
 
-.v2-card {
-  overflow: hidden;
+/* one line of a card: clipped top and bottom while it unfolds, free to
+   grow past the column on the right when magnified */
+.v2-line {
+  overflow: visible clip;
   /* under the label, not the icon */
   padding-left: 52px;
 }
 
-.v2-card-inner {
-  padding: 2px 0 14px;
+.v2-line-inner {
+  transform-origin: left top;
+  will-change: transform;
 }
 
 .v2-links {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
-  margin: 0 0 8px;
+  margin: 0;
+  padding: 2px 0 8px;
   font-size: 13px;
 }
 
@@ -508,6 +508,7 @@ body.lensing .glass-panel {
 
 .v2-about {
   margin: 0;
+  padding: 0 0 14px;
   max-width: 34ch;
   font-size: 14px;
   line-height: 1.45;
@@ -518,7 +519,7 @@ body.lensing .glass-panel {
   display: block;
   width: 100%;
   max-height: 180px;
-  margin: 10px 0 0;
+  margin: 0 0 14px;
   border-radius: 8px;
   object-fit: cover;
 }

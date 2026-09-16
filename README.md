@@ -33,21 +33,23 @@ which never show the selector.
 
 v2's list: `src/eras/v2/index.tsx`. The magnification curve it shares with
 the dock lives in `src/magnify.ts`, but v2 applies it as *height*, not a
-transform: each row's height follows the curve, its head scales to fill
-that height, and an open row's card is simply more height, so neighbours
-are pushed by layout. An open row's card is part of the row: head and
-card are one block, laid out at rest and scaled together, and the card is
-part of the resting grid. Every row measures its distance to the pointer
-from the centre of its whole extent, so an open row is just a taller item
-on the same curve: it peaks with the pointer at its middle, breathes as
-the pointer moves over it like any other row, and the rows past its card
-are as far from the pointer as they look. The list
-slides up by exactly the growth above the pointer's grid point, which
-keeps the point under the pointer still and stops the geometry chasing the
-cursor. Two more offsets are held until the pointer leaves: the slide that
-keeps an open card inside the viewport (as far as the top allows), and the
-height of a card that closed above the pointer, so moving from a card into
-the row below it does not throw the list. Moving on to another row closes
+transform. Everything on the list is an item on that one curve: a row's
+head, and, when the row is open, each line of its card (links, blurb,
+picture) on its own. An item's height is its resting extent grown by the
+curve at the distance to its centre, what is inside is laid out at rest
+and scaled to fill it, and neighbours are pushed by layout; an open row is
+just a short run of items, each breathing on its own as the pointer
+passes. The card's lines are part of the resting grid, so the rows past a
+card are as far from the pointer as they look. The list slides up by
+exactly the growth above the pointer's grid point, which keeps the point
+under the pointer still and stops the geometry chasing the cursor. Two
+more offsets are held: the slide that keeps an open card inside the
+viewport (as far as the top allows), and the height of a card that closed
+above the pointer, so moving from a card into the row below it does not
+throw the list. While nothing is open, each pointer move pays part of that
+hold back at half the pointer's speed, so the list finds its way home
+under cover of motion rather than creeping; the rest goes when the pointer
+leaves. Moving on to another row closes
 the open one at once and starts that row's dwell; a mouse leaving the list
 closes it, a lifted finger leaves it open for its links. On touch the list
 is `touch-action: none`, so a finger scrubs the magnification instead of

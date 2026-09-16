@@ -47,9 +47,9 @@ async function main() {
       const wrap = document.querySelector('.v2-wrap').getBoundingClientRect();
       const rows = [...document.querySelectorAll('.v2-row')].map((el) => {
         const r = el.getBoundingClientRect();
-        const head = el.querySelector('.v2-row-inner');
+        const head = el.querySelector('.v2-head');
         const hm = new DOMMatrixReadOnly(getComputedStyle(head).transform);
-        const card = el.querySelector('.v2-card').getBoundingClientRect();
+        const card = { height: [...el.querySelectorAll('.v2-line')].reduce((a, l) => a + l.getBoundingClientRect().height, 0) };
         return {
           name: el.querySelector('.v2-label').textContent,
           top: r.top,
