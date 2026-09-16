@@ -35,13 +35,13 @@ v2's list: `src/eras/v2/index.tsx`. The magnification curve it shares with
 the dock lives in `src/magnify.ts`, but v2 applies it as *height*, not a
 transform: each row's height follows the curve, its head scales to fill
 that height, and an open row's card is simply more height, so neighbours
-are pushed by layout. The card is part of the resting grid, and every row
-measures its distance to the pointer from its *core*: the centre of its
-head or, when open, the segment from there down to the same point above
-the card's bottom (`spanDistance` in `magnify.ts`). A closed row's core is
-a point, so the curve is the classic one and the v1 dock is untouched; an
-open row stays at full size while the pointer is anywhere on it, and the
-rows past its card are as far from the pointer as they look. The list
+are pushed by layout. An open row's card is part of the row: head and
+card are one block, laid out at rest and scaled together, and the card is
+part of the resting grid. Every row measures its distance to the pointer
+from the centre of its whole extent, so an open row is just a taller item
+on the same curve: it peaks with the pointer at its middle, breathes as
+the pointer moves over it like any other row, and the rows past its card
+are as far from the pointer as they look. The list
 slides up by exactly the growth above the pointer's grid point, which
 keeps the point under the pointer still and stops the geometry chasing the
 cursor. Two more offsets are held until the pointer leaves: the slide that

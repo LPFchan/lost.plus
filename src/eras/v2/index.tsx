@@ -4,22 +4,22 @@
 // Hold there (a ring draws itself around the icon) and the row opens into
 // its links, a short description and a picture.
 //
-// Rows have real heights, not transforms: a row's height follows the curve,
-// its head scales to fill it, and an open row's card is simply more height.
-// Neighbours are pushed by layout.
+// Rows have real heights, not transforms: a row's height follows the curve
+// and its contents scale to fill it. An open row's card is simply more of
+// the row: head and card are one block, laid out at rest and scaled
+// together. Neighbours are pushed by layout.
 //
 // The geometry works in one resting grid: rows stacked at `size`, plus each
 // open card, which is part of the grid because it depends only on state,
 // never on the pointer. The pointer's grid point is its screen position
 // minus the wrap's top, plus whatever the list is being held away from
-// home by (below). Each row measures the curve to its core, the centre of
-// its head or, when open, the segment from there to the same point above
-// its card's bottom (see magnify.ts): an open row stays at full size for
-// as long as the pointer is anywhere on it, and the rows past its card are
-// as far from the pointer as they look. Growth is extra inserted into the
-// grid; the list slides up by exactly the growth above the pointer's grid
-// point, so what is under the pointer never moves, and nothing here can
-// chase the cursor.
+// home by (below). Each row measures the curve to the centre of its whole
+// extent, so an open row is just a taller item: it peaks when the pointer
+// is at its middle, breathes as the pointer moves over it like any other
+// row, and the rows past its card are as far from the pointer as they
+// look. Growth is extra inserted into the grid; the list slides up by
+// exactly the growth above the pointer's grid point, so what is under the
+// pointer never moves, and nothing here can chase the cursor.
 //
 // The list is also held away from home by two things, until the pointer
 // leaves: the slide that keeps an open card inside the viewport, and the
@@ -50,7 +50,7 @@ import {
   useState,
 } from 'react';
 import { ENTRIES, Entry } from '../../entries';
-import { magnify, spanDistance } from '../../magnify';
+import { magnify } from '../../magnify';
 import { ListTuning, readListTuning } from '../../tune';
 import { EraProps } from '../types';
 import { MacosIcon } from '../v1/Dock';
@@ -89,7 +89,7 @@ export default function V2(_: EraProps) {
 }
 
 type Layout = {
-  /** each row's head height */
+  /** each row's height: its resting extent (head, and card when open) grown by the curve */
   heights: number[];
   heats: number[];
   /** how far the list is translated up: growth above the pointer, plus the hold */
@@ -112,7 +112,9 @@ function WatchList({ entries, tuning }: { entries: Entry[]; tuning: ListTuning }
   const wrapRef = useRef<HTMLDivElement>(null);
   const wrapTop = useRef(0);
   const rowEls = useRef(new Map<string, HTMLDivElement>());
-  // each row's open card height, animated; part of the resting grid
+  // each row's open card height: its target, not the animated value, so
+  // the grid and everything derived from it step and are sprung once, in
+  // time with the card's own spring (see Row)
   const cards = useMemo(() => entries.map(() => motionValue(0)), [entries]);
   const [hot, setHot] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -184,22 +186,22 @@ function WatchList({ entries, tuning }: { entries: Entry[]; tuning: ListTuning }
       let openBottom = 0; // the open row's bottom in the laid-out list
       for (let i = 0; i < entries.length; i++) {
         const c = cards[i].get();
-        const core = top + size / 2;
-        const d = v === -Infinity ? -Infinity : spanDistance(v, core, core + c);
-        const h = size * magnify(d, curve).scale;
+        const extent = size + c;
+        const d = v === -Infinity ? -Infinity : v - (top + extent / 2);
+        const h = extent * magnify(d, curve).scale;
         if (v !== -Infinity) {
-          if (v >= top + size) above += h - size;
-          else if (v > top) above += ((h - size) * (v - top)) / size;
+          if (v >= top + extent) above += h - extent;
+          else if (v > top) above += ((h - extent) * (v - top)) / extent;
         }
         heights.push(h);
         const isOpen = entries[i].name === open;
         heats.push(isOpen ? 1 : d === -Infinity ? 0 : Math.max(0, 1 - Math.abs(d) / size));
-        stack += h + c;
+        stack += h;
         if (isOpen) {
           openCell = i;
           openBottom = stack;
         }
-        top += size + c;
+        top += extent;
       }
       return { heights, heats, above, openCell, openBottom };
     };
@@ -294,10 +296,11 @@ function WatchList({ entries, tuning }: { entries: Entry[]; tuning: ListTuning }
 
   // A card closing above the pointer takes its height out of the grid
   // there; the list is held up by the same amount so the rows under the
-  // pointer stay put. The Row starts the card's collapse in its own effect,
-  // which runs before this one, so the two steps land on the same frame.
+  // pointer stay put. A layout effect, so it reads the card's target before
+  // the Row's own effect zeroes it and starts the collapse; both land on
+  // the same frame.
   const wasOpen = useRef<string | null>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const prev = wasOpen.current;
     wasOpen.current = expanded;
     if (prev && prev !== expanded) {
@@ -408,8 +411,11 @@ function Row({
     useTransform(() => layout.get().heights[index]),
     spring,
   );
-  // the head fills the row: its box is the resting size, scaled up
-  const scale = useTransform(height, (h) => h / tuning.size);
+  // the card's height as shown, sprung from its target (below)
+  const live = useMotionValue(0);
+  // the block inside is laid out at the resting extent and scaled to fill
+  // whatever height the row has grown to
+  const scale = useTransform(() => height.get() / (tuning.size + live.get()));
   const heat = useSpring(
     useTransform(() => layout.get().heats[index]),
     { stiffness: 300, damping: 30 },
@@ -419,35 +425,35 @@ function Row({
   const opacity = useTransform(heat, (h) => tuning.rest + (1 - tuning.rest) * h);
   const host = new URL(entry.href).host;
 
-  // The card's height is animated by hand so the layout can read it, and
-  // with the rows' own spring: card, heights and the list's shift then share
-  // one set of dynamics, so the shift cancels the card's motion exactly and
-  // nothing under the pointer moves while a card opens or closes above it.
+  // The card's target height goes to the layout at once; the card itself
+  // opens with the rows' own spring. Row height, list shift and card then
+  // all step together and share one set of dynamics, so the shift cancels
+  // the card's motion exactly and nothing under the pointer moves while a
+  // card opens or closes above it. The block's scale stays put throughout,
+  // because height and card sit on the same curve.
   const inner = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const target = expanded ? (inner.current?.scrollHeight ?? 0) : 0;
-    const ctl = animate(card, target, { type: 'spring', ...spring });
+    card.set(target);
+    const ctl = animate(live, target, { type: 'spring', ...spring });
     return () => ctl.stop();
-  }, [expanded, card, spring]);
+  }, [expanded, card, live, spring]);
 
   return (
     <motion.div
       ref={register}
       className="v2-row"
       data-expanded={expanded ? '' : undefined}
-      style={{ height: useTransform(() => height.get() + card.get()) }}
+      style={{ height }}
     >
-      {/* the head's box takes the row's real height; the head inside is laid
-          out at the resting size and scaled to fill it */}
-      <motion.div style={{ height }}>
-      <motion.a
+      <motion.div className="v2-row-inner" style={{ scale, opacity }}>
+      <a
         className="v2-head"
         href={entry.href}
         target="_blank"
         rel="noopener"
         draggable={false}
         onClick={onClick}
-        style={{ scale, opacity }}
       >
         <motion.span className="v2-icon" style={{ filter }}>
           <MacosIcon entry={entry} alt="" />
@@ -476,9 +482,8 @@ function Row({
           </AnimatePresence>
         </motion.span>
         <span className="v2-label">{entry.name}</span>
-      </motion.a>
-      </motion.div>
-      <motion.div className="v2-card" style={{ height: card, opacity }}>
+      </a>
+      <motion.div className="v2-card" style={{ height: live }}>
         <div ref={inner} className="v2-card-inner">
           <p className="v2-links">
             <a href={entry.href} target="_blank" rel="noopener">
@@ -498,6 +503,7 @@ function Row({
             <video className="v2-media" src={entry.media.src} autoPlay muted loop playsInline />
           )}
         </div>
+      </motion.div>
       </motion.div>
     </motion.div>
   );

@@ -435,14 +435,18 @@ body.lensing .glass-panel {
   overflow: visible;
 }
 
-/* the head is laid out at the resting size and scaled to fill whatever
-   height the row has grown to */
+/* the row's block (head, and card when open) is laid out at the resting
+   size and scaled to fill whatever height the row has grown to */
+.v2-row-inner {
+  transform-origin: left top;
+  will-change: transform;
+}
+
 .v2-head {
   display: flex;
   align-items: center;
   gap: 14px;
   height: var(--size);
-  transform-origin: left top;
   color: inherit;
   text-decoration: none;
   font-size: 17px;
