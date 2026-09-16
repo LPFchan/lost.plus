@@ -1,10 +1,40 @@
 # lost.plus
 
-A static launcher for the web services I host, styled as a macOS dock
-(magnify on hover, spring physics, bounce on click). Built with Vite + React +
-Tailwind v4 + framer-motion; the dock interaction started as the
+A static launcher for the web services I host. It has had two looks so far,
+and both are kept: an **era selector** in the top-right corner (desktop only)
+swaps them live.
+
+- **v1** — a macOS dock (magnify on hover, spring physics, bounce on click)
+  over the sky, the trees and the bird. The default for now.
+- **v2** — a watchOS-style list over the same sky, dimmed, trees gone. Rows
+  rest small and grey; the ones around the pointer magnify vertically with
+  the dock's own curve, and the one under it comes to life in colour. Hold
+  there two seconds (a ring fills clockwise around the icon) and the row
+  opens into a blurb, a picture and links. Click or tap still launches.
+
+Built with Vite + React + Tailwind v4 + framer-motion; the dock interaction
+started as the
 [buildui magnified-dock recipe](https://buildui.com/recipes/magnified-dock),
 with the tray's edges reworked (see below).
+
+## Eras
+
+`src/eras/index.ts` is the registry: each era is a component that draws over
+the shared backdrop, plus the look it wants from the scene (`trees`, `dim`,
+`forceDark`). `App` mounts the chosen era and hands the backdrop that look by
+reference; the canvas never remounts across a switch, so the hero only hides
+its tree meshes, sends the bird back to crossing the sky, and eases its
+exposure. Both eras read the one list in `src/entries.ts`; v2 also shows an
+entry's `about`, `media` and `links`.
+
+The choice persists in `localStorage` (`lp-era`); `?era=v1|v2` overrides it
+and is saved. `DEFAULT_ERA` is what a first visit gets. Phones never show
+the selector, so they always get the default (or the URL override).
+
+v2's list: `src/eras/v2/index.tsx`. The magnification curve it shares with
+the dock lives in `src/magnify.ts`. On touch the list is `touch-action:
+none`, so a finger scrubs the magnification instead of scrolling; a tap
+launches, a press-and-hold opens the detail, and a scrub does neither.
 
 ## Dock tray
 
@@ -77,7 +107,8 @@ Notes:
   carve a hard rectangle into the clouds. The wind, pointer parallax, bird
   behaviour and depth of field are all kept.
 - `Dock` hands `Backdrop` both candidate panels; the one the 480px breakpoint
-  hides measures zero, so the breakpoint stays in the stylesheet only.
+  hides measures zero, so the breakpoint stays in the stylesheet only. v2 has
+  no glass at all and hands over nothing.
 - On narrow windows the whole dock is CSS-scaled. The shader solves the optics
   on the undeformed panel and pushes the result back out, so the rim doesn't
   thin as the window narrows.
@@ -99,7 +130,8 @@ Notes:
   the page and a glass panel opens with an fps meter, a quality slider, sun
   and cloud pins, and the six lens fields. The same sequence closes it.
   Settings persist in localStorage (lp-quality, lp-sun, lp-cloud, lp-lens);
-  URL params still win when both are set. Reset clears it all.
+  URL params still win when both are set. Reset clears it all. The live hero
+  handle is also on `window.__hero` for poking at from the dev tools.
 - three.js is code-split (`import('./hero')`) so it streams in after first
   paint; until it (and then the bird's GLB) is ready the canvas shows a flat
   field in the same palette family.
@@ -130,7 +162,7 @@ The site is installable as a PWA (standalone window, offline-capable) via
 ## Icons
 
 Drop a **raw rectangular image** (png/jpg/svg) into `src/assets/raw/` and add an
-entry in `src/App.tsx`. Every dock icon goes through a single CSS pipeline
+entry in `src/entries.ts`. Every dock icon goes through a single CSS pipeline
 (`.macos-icon` in `src/index.css`) that owns the macOS geometry from
 [sundegan/macos-icon-generator](https://github.com/sundegan/macos-icon-generator):
 

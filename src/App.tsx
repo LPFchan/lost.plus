@@ -1,147 +1,39 @@
 import { useEffect, useRef, useState } from 'react';
-import Backdrop, { GlassTarget } from './Backdrop';
-import Dock, {
-  DEFAULT_TUNING,
-  DockEntry,
-  DockTuning,
-  dockNaturalWidth,
-  dockOverflowReserve,
-} from './Dock';
-import heatmapIcon from './assets/raw/heatmap.png';
-import eastselfIcon from './assets/raw/eastself.jpg';
-import okdamIcon from './assets/raw/okdam.png';
-import coverseIcon from './assets/raw/coverse-icon.png';
-import censorIcon from './assets/raw/censor.png';
-import photopeaceIcon from './assets/raw/photopeace.png';
-import gswIcon from './assets/raw/gsw.png';
-import artmuIcon from './assets/raw/artmu.png';
-import artmuDarkIcon from './assets/raw/artmu-dark.png';
-import chatIcon from './assets/raw/chat.png';
-import chatLightIcon from './assets/raw/chat-light.png';
-import setupIcon from './assets/raw/setup.png';
-import dashIcon from './assets/raw/dash.png';
-import githubIcon from './assets/raw/github-mark.svg';
-import markfopsIcon from './assets/raw/markfops.png';
-import awareIcon from './assets/raw/aware.png';
-
-const ENTRIES: DockEntry[] = [
-  {
-    name: 'github',
-    href: 'https://github.com/LPFchan',
-    icon: githubIcon,
-    treatment: 'tile',
-  },
-  {
-    name: 'heatmap',
-    href: 'https://heatmap.lost.plus',
-    icon: heatmapIcon,
-    treatment: 'preshaped',
-  },
-  { name: 'okdam', href: 'https://okdam.lost.plus', icon: okdamIcon },
-  { name: 'coverse', href: 'https://coverse.lost.plus', icon: coverseIcon },
-  {
-    name: 'censor',
-    href: 'https://censor.lost.plus',
-    icon: censorIcon,
-  },
-  {
-    name: 'photopeace',
-    href: 'https://photopeace.lost.plus',
-    icon: photopeaceIcon,
-  },
-  { name: 'gsw', href: 'https://gsw.lost.plus', icon: gswIcon },
-  { name: 'setup', href: 'https://setup.lost.plus', icon: setupIcon },
-  {
-    name: 'dash',
-    href: 'https://dash.lost.plus',
-    icon: dashIcon,
-    treatment: 'preshaped',
-  },
-  {
-    name: 'chat',
-    href: 'https://chat.lost.plus',
-    icon: chatIcon,
-    darkIcon: chatLightIcon,
-  },
-  {
-    name: 'markfops',
-    href: 'https://github.com/LPFchan/Markfops',
-    icon: markfopsIcon,
-    treatment: 'preshaped',
-  },
-  {
-    name: 'aware',
-    href: 'https://github.com/LPFchan/Aware',
-    icon: awareIcon,
-    treatment: 'preshaped',
-  },
-  {
-    name: 'artmu',
-    href: 'https://artmu.lost.plus',
-    icon: artmuIcon,
-    darkIcon: artmuDarkIcon,
-  },
-  { name: 'eastself', href: 'https://eastself.lost.plus', icon: eastselfIcon },
-];
+import Backdrop, { BackdropLook, GlassTarget } from './Backdrop';
+import EraSelector from './EraSelector';
+import { ERAS, initialEra, saveEra } from './eras';
 
 export default function App() {
-  const [tuning] = useState<DockTuning>(DEFAULT_TUNING);
-  // The dock fills this in with its glass panels; the backdrop reads it every
-  // frame to know what to refract.
+  const [eraId, setEraId] = useState(initialEra);
+  const era = ERAS.find((e) => e.id === eraId) ?? ERAS[0];
+
+  // The era fills this in with its glass panels; the backdrop reads it every
+  // frame to know what to refract. Cleared on a switch so a departed era's
+  // panels are never measured.
   const glass = useRef<GlassTarget[]>([]);
-
-  const [entries, setEntries] = useState<DockEntry[]>(() => {
-    try {
-      // bump the version whenever the default order changes, so visitors
-      // with a stale saved order get the new default
-      const saved = JSON.parse(localStorage.getItem('dock-order-v4') ?? 'null');
-      if (!Array.isArray(saved)) return ENTRIES;
-      const ordered = saved
-        .map((name) => ENTRIES.find((e) => e.name === name))
-        .filter((e): e is DockEntry => Boolean(e));
-      const missing = ENTRIES.filter((e) => !saved.includes(e.name));
-      return [...ordered, ...missing];
-    } catch {
-      return ENTRIES;
-    }
-  });
+  const look = useRef<BackdropLook>(era.look);
+  look.current = era.look;
 
   useEffect(() => {
-    localStorage.setItem('dock-order-v4', JSON.stringify(entries.map((e) => e.name)));
-  }, [entries]);
-
-  // three layout regimes by window width:
-  //   < 640px (threshold A): iOS-springboard folder grid
-  //   A..B:                  macOS dock, zoomed to fit the window
-  //   > B (natural width):   macOS dock at its natural size
-  const [zoom, setZoom] = useState(1);
-  useEffect(() => {
-    // zoom fits the dock *and* the room its magnification needs to breathe
-    const natural =
-      dockNaturalWidth(ENTRIES.length, tuning) +
-      dockOverflowReserve(tuning) * 2 +
-      32;
-    const onResize = () =>
-      setZoom(Math.min(1, (window.innerWidth - 16) / natural));
-    onResize();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [tuning]);
+    saveEra(era.id);
+    document.documentElement.dataset.era = era.id;
+    // Without WebGL nothing else drives the theme, so an era that wants dark
+    // sets it here; with the scene running, Backdrop re-derives it per frame.
+    if (era.look.forceDark) document.documentElement.classList.add('dark');
+    else if (!document.documentElement.hasAttribute('data-sky'))
+      document.documentElement.classList.remove('dark');
+    return () => {
+      glass.current = [];
+    };
+  }, [era]);
 
   return (
     <>
-      <Backdrop glass={glass} />
+      <Backdrop glass={glass} look={look} />
       {/* The backdrop canvas is positioned, so unpositioned content would
-          paint underneath it. Lift the page into its own layer above. */}
-      <main className="relative z-10 flex h-full items-center justify-center">
-        <Dock
-          entries={entries}
-          tuning={tuning}
-          onReorder={setEntries}
-          zoom={zoom}
-          glass={glass}
-        />
-      </main>
+          paint underneath it. Each era lifts its page into a layer above. */}
+      <era.Component key={era.id} glass={glass} />
+      <EraSelector era={era.id} onChange={setEraId} />
     </>
   );
 }

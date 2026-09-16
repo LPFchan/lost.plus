@@ -37,6 +37,15 @@ export type GlassTarget = {
 };
 
 /** knobs the lens shader exposes, all in undeformed px unless noted */
+/** What an era asks of the scene. Read every frame, like the glass list. */
+export type BackdropLook = {
+  trees: boolean;
+  /** exposure pull, 0 = the scene as is, 1 = heavily dimmed */
+  dim: number;
+  /** keep the page in dark mode regardless of the sky's phase */
+  forceDark: boolean;
+};
+
 export type LensConfig = {
   bleed: number;
   thick: number;
@@ -256,7 +265,10 @@ function peakBendFor(ior: number) {
 
 export default function Backdrop({
   glass,
+  look,
 }: {
+  /** the current era's look; swapped by reference, applied on the next frame */
+  look: RefObject<BackdropLook>;
   /**
    * Candidate glass panels, most specific first. Whichever one is actually on
    * screen gets the optics — the others are `display: none` and measure zero,
@@ -284,6 +296,7 @@ export default function Backdrop({
     let fadeAt = 0;
     let quadVAO: WebGLVertexArrayObject | null = null;
     let hero: HeroHandle | null = null;
+    let appliedLook: BackdropLook | null = null;
     let frameCount = 0;
     let lens = lensConfig();
     let quality = heroQuality();
@@ -345,6 +358,8 @@ export default function Backdrop({
           if (gl !== g || !g || g.isContextLost()) return;
           try {
           hero = createHero(g, canvas!, { assets: '/fx/hero/' });
+          // inspection handle for the tuning console and the dev tools
+          (window as unknown as Record<string, unknown>).__hero = hero;
             hero.resize(
               window.innerWidth,
               window.innerHeight,
@@ -512,6 +527,10 @@ export default function Backdrop({
       // as the source of truth (App defers to the scene when it is running).
       let sceneTex: WebGLTexture | null = null;
       if (hero) {
+        if (look.current !== appliedLook) {
+          appliedLook = look.current;
+          hero.setLook(appliedLook);
+        }
         hero.renderFrame(dt, elapsed, pointer);
         // three only allocates the GL texture for a render-target texture
         // lazily; properties.get() is what does it. (initTexture no-ops on
@@ -520,7 +539,7 @@ export default function Backdrop({
           __webglTexture?: WebGLTexture;
         };
         sceneTex = props.__webglTexture ?? hero.finalRT.texture.__webglTexture ?? null;
-        const dark = hero.isDark();
+        const dark = hero.isDark() || look.current.forceDark;
         // The sky is the source of truth for the page theme.
         if (!document.documentElement.hasAttribute('data-sky'))
           document.documentElement.setAttribute('data-sky', '');
@@ -681,7 +700,7 @@ export default function Backdrop({
       hero?.dispose();
       document.body.classList.remove('lensing');
     };
-  }, [glass]);
+  }, [glass, look]);
 
   return <canvas ref={canvasRef} className="backdrop-canvas" aria-hidden="true" />;
 }

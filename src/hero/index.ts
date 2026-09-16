@@ -44,6 +44,12 @@ export type HeroHandle = {
   resize(w: number, h: number, dpr: number): void;
   /** whether the scene is in its dark phase (drives the page theme) */
   isDark(): boolean;
+  /**
+   * The era's take on the scene: whether the trees are drawn (the bird only
+   * crosses the sky without them) and how far to pull the exposure down.
+   * `dim` is 0..1; it eases in over a second so an era switch doesn't cut.
+   */
+  setLook(look: { trees: boolean; dim: number }): void;
   dispose(): void;
   // debug/inspection handle to the shared sky uniforms
   skyU: ReturnType<typeof makeSkyUniforms>;
@@ -389,6 +395,14 @@ export function createHero(
   const sway = { x: 0, y: 0 };
   const look = { day: 1, dusk: 0, night: 0, morning: 0 };
   let dark = false;
+  // era look: trees on/off and the exposure pull, eased per frame
+  let dimTarget = 0;
+  let dim = 0;
+  function setLook(l: { trees: boolean; dim: number }) {
+    for (const m of [barkMesh, canopyMesh, ovalMesh]) m.visible = l.trees;
+    bird.setPerchEnabled(l.trees);
+    dimTarget = Math.min(1, Math.max(0, l.dim));
+  }
 
   function applyLook() {
     const { day, dusk, night, morning } = look;
@@ -497,6 +511,9 @@ export function createHero(
 
     updateSolar();
 
+    dim += (dimTarget - dim) * (1 - Math.exp(-3 * dt));
+    post.compMat.uniforms.uDim.value = dim;
+
     // pointer parallax: the camera sways a few pixels' worth
     sway.x += (pointer[0] - sway.x) * (1 - Math.exp(-3 * dt));
     sway.y += (pointer[1] - sway.y) * (1 - Math.exp(-3 * dt));
@@ -582,6 +599,7 @@ export function createHero(
     renderFrame,
     resize,
     isDark: () => dark,
+    setLook,
     dispose() {
       renderer.setRenderTarget(null);
       scene.traverse((o) => {

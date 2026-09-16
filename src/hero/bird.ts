@@ -61,6 +61,8 @@ export type BirdSystem = {
   /** current perch spring offset of the branch the bird sits on */
   perchOffset(out: THREE.Vector3, t: number, wind: number): THREE.Vector3;
   setPerch(p: Perch): void;
+  /** allow landing at all; off, the bird only ever crosses the sky */
+  setPerchEnabled(on: boolean): void;
   setPointer(x: number, y: number): void;
   cue(): void;
   screenPos(): [number, number] | null;
@@ -398,8 +400,12 @@ export function loadBird(opts: {
   }
 
   /** Fly in from off-frame and land on the perch. */
+  // Whether the bird may land at all. With the trees hidden there is nothing
+  // to sit on, so it only ever crosses the sky.
+  let perchEnabled = true;
+
   function startFlyIn() {
-    if (!perch.current || !ready) return;
+    if (!perchEnabled || !perch.current || !ready) return;
     pC.fromArray(perch.current.p as number[]);
     pC.y += 0.004;
     tmpV.copy(pC).project(camera);
@@ -927,6 +933,10 @@ export function loadBird(opts: {
     perchOffset,
     setPerch(p: Perch) {
       perch.current = p;
+    },
+    setPerchEnabled(on: boolean) {
+      perchEnabled = on;
+      if (!on && state === 'perched') startTakeOff();
     },
     setPointer(x: number, y: number) {
       pointerX = x;

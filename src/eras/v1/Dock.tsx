@@ -16,14 +16,12 @@ import {
   useTransform,
 } from 'framer-motion';
 import { ReactNode, RefObject, useEffect, useMemo, useRef, useState } from 'react';
-import { GlassTarget } from './Backdrop';
+import { GlassTarget } from '../../Backdrop';
+import { Entry } from '../../entries';
+import { magnify, MagnifyTuning } from '../../magnify';
 
-export type DockTuning = {
-  size: number; // resting icon width in px
+export type DockTuning = MagnifyTuning & {
   gap: number; // spacing between icons in px
-  scale: number; // max scale factor of an icon
-  distance: number; // pixels before mouse affects an icon
-  nudge: number; // pixels icons are moved away from mouse
   mass: number;
   stiffness: number;
   damping: number;
@@ -40,22 +38,7 @@ export const DEFAULT_TUNING: DockTuning = {
   damping: 11,
 };
 
-export type DockEntry = {
-  name: string;
-  href: string;
-  icon: string;
-  /** shown instead of `icon` in dark mode */
-  darkIcon?: string;
-  /**
-   * How the artwork is treated inside the standard macOS icon canvas.
-   * - cover:     raw rectangular image; pipeline crops and rounds it
-   * - preshaped: artwork is already a finished macOS icon; passed through
-   * - tile:      glyph on a colored rounded tile (github style)
-   * Geometry (inset, radius, shadow) is owned by the pipeline and can never
-   * vary per icon — only the treatment of its content.
-   */
-  treatment?: 'cover' | 'preshaped' | 'tile';
-};
+export type DockEntry = Entry;
 
 /**
  * Dock tray geometry, derived from the icon pipeline so the tray is always
@@ -79,26 +62,6 @@ function trayGeometry(tuning: DockTuning) {
 /** corner radius of the phone-sized folder grid; the tray derives its own */
 const GRID_RADIUS = 32;
 
-/**
- * The magnification curve: how much an icon `d` px from the cursor grows, and
- * how far it is pushed away. The single source of truth for it — the icons
- * transform with this, and the tray measures its end icons with it, so the two
- * can never disagree about where an icon's edge has got to.
- *
- * `d` is signed and in unzoomed dock pixels: positive means the cursor is to
- * the right of the icon, so the icon is pushed left.
- */
-function magnify(d: number, tuning: DockTuning): { scale: number; x: number } {
-  if (d === -Infinity) return { scale: 1, x: 0 };
-  const t = Math.min(Math.abs(d) / tuning.distance, 1);
-  const scale = 1 + (tuning.scale - 1) * (1 - t);
-  const x =
-    t >= 1
-      ? Math.sign(d) * -tuning.nudge
-      : (-d / tuning.distance) * tuning.nudge * scale;
-  return { scale, x };
-}
-
 /** resting centre of the icon in slot `i`, in unzoomed dock pixels */
 function slotCenter(i: number, tuning: DockTuning): number {
   return trayGeometry(tuning).padding + i * (tuning.size + tuning.gap) + tuning.size / 2;
@@ -115,7 +78,7 @@ export function dockOverflowReserve(tuning: DockTuning): number {
   return Math.ceil((tuning.size * (tuning.scale - 1)) / 2) + tuning.nudge;
 }
 
-function MacosIcon({ entry, alt }: { entry: DockEntry; alt: string }) {
+export function MacosIcon({ entry, alt }: { entry: DockEntry; alt: string }) {
   const treatment = entry.treatment ?? 'cover';
   const content =
     treatment === 'tile' ? (

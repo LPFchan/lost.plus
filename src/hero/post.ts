@@ -144,6 +144,9 @@ export function makePostPipeline(
       uFgBlur: blurMat.uniforms.uFgBlur,
       uBgBlur: blurMat.uniforms.uBgBlur,
       uExposure: blurMat.uniforms.uExposure,
+      // the era's dim, 0..1: pulls exposure and then darkens the graded
+      // result, so highlights roll off first and the whole frame follows
+      uDim: { value: 0 },
       uTime: shared.uTime,
       uGrain: blurMat.uniforms.uGrain,
       uGrainT: { value: 0.37 },
@@ -158,7 +161,7 @@ export function makePostPipeline(
       precision highp float;
       varying vec2 vUv;
       uniform sampler2D tFol, tFolB, tSky, tSkyB;
-      uniform float uFgBlur, uBgBlur, uExposure, uTime, uGrain, uGrainT, uWrap, uGlow, uCA, uNight, uDusk;
+      uniform float uFgBlur, uBgBlur, uExposure, uDim, uTime, uGrain, uGrainT, uWrap, uGlow, uCA, uNight, uDusk;
       vec3 aces(vec3 x) {
         return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
       }
@@ -187,7 +190,10 @@ export function makePostPipeline(
         vec3 glowSrc = max(bgB.rgb / max(bgB.a, 1e-4) - 1.15, 0.0)
                      + max(fB.rgb / max(fB.a, 1e-4) - 1.15, 0.0);
         col += glowSrc * 0.30 * uGlow;
-        col = aces(col * uExposure);
+        col = aces(col * uExposure * (1.0 - 0.6 * uDim));
+        // the second pull is in linear light, so it has to be steep to read
+        // as heavy after the gamma curve: 0.85 dim lands the sky near 30%
+        col *= 1.0 - 0.92 * uDim;
         // half-step red trim: the day sky lands exactly on #648BBA; night lifts blue instead
         col = col * 0.972 + mix(vec3(0.0074, 0.006, 0.006), vec3(0.0, 0.0015, 0.006), uNight)
             + uDusk * vec3(0.005, 0.002, 0.0);
