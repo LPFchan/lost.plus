@@ -35,15 +35,31 @@ v2's list: `src/eras/v2/index.tsx`. The magnification curve it shares with
 the dock lives in `src/magnify.ts`, but v2 applies it as *height*, not a
 transform: each row's height follows the curve, its head scales to fill
 that height, and an open row's card is simply more height, so neighbours
-are pushed by layout. The list then slides up by exactly the growth above
-the pointer, which keeps the point under the pointer still and stops the
-geometry chasing the cursor. If an open card would run off the bottom of
-the viewport the list slides up as far as the top allows. Moving on to
-another row closes the open one at once and starts that row's dwell; a
-mouse leaving the list closes it, a lifted finger leaves it open for its
-links. On touch the list is `touch-action: none`, so a finger scrubs the
-magnification instead of scrolling; a tap launches, a press-and-hold opens
-the detail, and a scrub does neither. The page itself never scrolls.
+are pushed by layout. The card is part of the resting grid, and every row
+measures its distance to the pointer from its *core*: the centre of its
+head or, when open, the segment from there down to the same point above
+the card's bottom (`spanDistance` in `magnify.ts`). A closed row's core is
+a point, so the curve is the classic one and the v1 dock is untouched; an
+open row stays at full size while the pointer is anywhere on it, and the
+rows past its card are as far from the pointer as they look. The list
+slides up by exactly the growth above the pointer's grid point, which
+keeps the point under the pointer still and stops the geometry chasing the
+cursor. Two more offsets are held until the pointer leaves: the slide that
+keeps an open card inside the viewport (as far as the top allows), and the
+height of a card that closed above the pointer, so moving from a card into
+the row below it does not throw the list. Moving on to another row closes
+the open one at once and starts that row's dwell; a mouse leaving the list
+closes it, a lifted finger leaves it open for its links. On touch the list
+is `touch-action: none`, so a finger scrubs the magnification instead of
+scrolling; a tap launches, a press-and-hold opens the detail, and a scrub
+does neither. The page itself never scrolls.
+
+`scripts/v2-probe.cjs` drives the list with a synthetic mouse and finger in
+headless Chromium and prints the settled geometry of every row, step by
+step, for a set of scenarios (a sweep, an open card walked through, the
+crossing from a card into the row below, a card near the viewport's
+bottom, a touch hold). Its header says how to run it; it is how the model
+above was checked, and the first thing to reach for when the feel is off.
 
 Every number in the list (row size, scale, distance, dwell, spring,
 resting opacity) and the scene's dim are live in the tuning console (below,

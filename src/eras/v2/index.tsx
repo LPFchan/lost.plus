@@ -6,14 +6,28 @@
 //
 // Rows have real heights, not transforms: a row's height follows the curve,
 // its head scales to fill it, and an open row's card is simply more height.
-// Neighbours are pushed by layout. The resting grid is rows at `size`;
-// growth and cards are extra inserted into it, and the list slides up by
-// exactly the extra above the pointer's grid point, so what is under the
-// pointer never moves and the geometry can never chase the cursor. An open
-// row is still an ordinary row: its head grows and shrinks with the curve
-// like any other, it just stays lit and carries a card. The pointer over
-// the card counts as the bottom of that row's grid cell, so the row keeps
-// some growth there and the rows below wake as the pointer nears them.
+// Neighbours are pushed by layout.
+//
+// The geometry works in one resting grid: rows stacked at `size`, plus each
+// open card, which is part of the grid because it depends only on state,
+// never on the pointer. The pointer's grid point is its screen position
+// minus the wrap's top, plus whatever the list is being held away from
+// home by (below). Each row measures the curve to its core, the centre of
+// its head or, when open, the segment from there to the same point above
+// its card's bottom (see magnify.ts): an open row stays at full size for
+// as long as the pointer is anywhere on it, and the rows past its card are
+// as far from the pointer as they look. Growth is extra inserted into the
+// grid; the list slides up by exactly the growth above the pointer's grid
+// point, so what is under the pointer never moves, and nothing here can
+// chase the cursor.
+//
+// The list is also held away from home by two things, until the pointer
+// leaves: the slide that keeps an open card inside the viewport, and the
+// height of a card that closed above the pointer (moving on to a lower row
+// closes the open one; the rows under the pointer would otherwise ride up
+// by the collapsing card). Both are steps into the sprung shift, and the
+// card animates with the same spring, so the two cancel throughout.
+//
 // Click or tap launches, as in v1. Only the dwell opens the detail.
 
 import {
@@ -30,12 +44,13 @@ import {
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import { ENTRIES, Entry } from '../../entries';
-import { magnify } from '../../magnify';
+import { magnify, spanDistance } from '../../magnify';
 import { ListTuning, readListTuning } from '../../tune';
 import { EraProps } from '../types';
 import { MacosIcon } from '../v1/Dock';
@@ -74,11 +89,11 @@ export default function V2(_: EraProps) {
 }
 
 type Layout = {
+  /** each row's head height */
   heights: number[];
   heats: number[];
+  /** how far the list is translated up: growth above the pointer, plus the hold */
   shift: number;
-  /** how far the list slid beyond the pointer's own shift to keep an open card on screen */
-  slide: number;
 };
 
 function WatchList({ entries, tuning }: { entries: Entry[]; tuning: ListTuning }) {
@@ -90,146 +105,157 @@ function WatchList({ entries, tuning }: { entries: Entry[]; tuning: ListTuning }
     () => ({ size: tuning.size, scale: tuning.scale, distance: tuning.distance, nudge: 0 }),
     [tuning.size, tuning.scale, tuning.distance],
   );
-  // pointer position in the wrap's resting frame, px from its top;
-  // -Infinity when away
-  const pointer = useMotionValue(-Infinity);
+  // the pointer's screen y; -Infinity when away
+  const screenY = useMotionValue(-Infinity);
+  // how far the list is held away from home, px (positive: up)
+  const hold = useMotionValue(0);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const wrapTop = useRef(0);
   const rowEls = useRef(new Map<string, HTMLDivElement>());
-  // each row's open card height, animated; part of the resting layout
+  // each row's open card height, animated; part of the resting grid
   const cards = useMemo(() => entries.map(() => motionValue(0)), [entries]);
   const [hot, setHot] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const expandedMV = useMotionValue<string | null>(null);
-  useEffect(() => expandedMV.set(expanded), [expanded, expandedMV]);
   // touch bookkeeping: where the finger went down and whether the dwell has
   // already opened the row (in which case lifting the finger is not a tap)
   const touch = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const opened = useRef(false);
   const lastPointer = useRef<string>('mouse');
 
-  // The whole list's geometry from the pointer alone, once per change.
-  // Grid: rows stacked at `size`. A row's growth is the curve at its grid
-  // centre; its extra is that growth plus its card. The shift is the extra accumulated above the pointer's grid
-  // point, so that point stays where it is on screen. Then, if an open card
-  // would run off the bottom of the viewport, the list slides up as far as
-  // the top allows; rows below it may go off screen. The slide is held until
-  // the pointer leaves the list altogether: releasing it while the pointer
-  // is still browsing would move the rows under it.
-  const held = useRef(0);
+  useLayoutEffect(() => {
+    const measure = () => {
+      wrapTop.current = wrapRef.current?.getBoundingClientRect().top ?? 0;
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+
+  /** the pointer's grid point, from its screen position */
+  const gridPoint = useCallback(
+    () => (screenY.get() === -Infinity ? -Infinity : screenY.get() - wrapTop.current + hold.get()),
+    [screenY, hold],
+  );
+  /** the top of row i's cell in the grid, with the cards as they are now */
+  const cellTop = useCallback(
+    (i: number) => {
+      let top = PAD;
+      for (let j = 0; j < i; j++) top += tuning.size + cards[j].get();
+      return top;
+    },
+    [cards, tuning.size],
+  );
+  /** which row's cell (head or card) a grid point is in, or -1 */
+  const cellAt = useCallback(
+    (v: number) => {
+      if (v === -Infinity || v < PAD) return -1;
+      let top = PAD;
+      for (let i = 0; i < entries.length; i++) {
+        const bottom = top + tuning.size + cards[i].get();
+        if (v < bottom) return i;
+        top = bottom;
+      }
+      return -1;
+    },
+    [entries, cards, tuning.size],
+  );
+
+  // The whole list's geometry, once per change of anything it depends on.
+  // If the open card runs off the bottom of the viewport, the list is held
+  // up further, as far as its top allows, but never so far that the pointer
+  // leaves the open row (that would close the card and loop). That moves
+  // the pointer's grid point, so the geometry is worked out again with it.
+  // The hold is written from in here on purpose: a value set from a change
+  // handler during a React render is lost, because the recompute it
+  // schedules is cancelled when the derived value resubscribes.
   const layout = useTransform((): Layout => {
-    const v = pointer.get();
+    const p = screenY.get();
     const open = expandedMV.get();
     const size = tuning.size;
-    const heights: number[] = [];
-    const heats: number[] = [];
-    let above = 0;
-    let extraTotal = 0;
-    let openBottom = -1; // the open row's bottom in the grown list, or -1
-    for (let i = 0; i < entries.length; i++) {
-      const top = PAD + i * size;
-      const isOpen = entries[i].name === open;
-      const d = v === -Infinity ? -Infinity : v - (top + size / 2);
-      const grow = magnify(d, curve).scale;
-      const h = size * grow;
-      const extra = h - size + cards[i].get();
-      if (v !== -Infinity) {
-        if (v >= top + size) above += extra;
-        else if (v > top) above += ((h - size) * (v - top)) / size;
+    const at = (held: number) => (p === -Infinity ? -Infinity : p - wrapTop.current + held);
+    const pass = (v: number) => {
+      const heights: number[] = [];
+      const heats: number[] = [];
+      let top = PAD;
+      let above = 0; // growth above the pointer's grid point
+      let stack = PAD; // the rows' laid-out heights so far
+      let openCell = -1;
+      let openBottom = 0; // the open row's bottom in the laid-out list
+      for (let i = 0; i < entries.length; i++) {
+        const c = cards[i].get();
+        const core = top + size / 2;
+        const d = v === -Infinity ? -Infinity : spanDistance(v, core, core + c);
+        const h = size * magnify(d, curve).scale;
+        if (v !== -Infinity) {
+          if (v >= top + size) above += h - size;
+          else if (v > top) above += ((h - size) * (v - top)) / size;
+        }
+        heights.push(h);
+        const isOpen = entries[i].name === open;
+        heats.push(isOpen ? 1 : d === -Infinity ? 0 : Math.max(0, 1 - Math.abs(d) / size));
+        stack += h + c;
+        if (isOpen) {
+          openCell = i;
+          openBottom = stack;
+        }
+        top += size + c;
       }
-      const near = d === -Infinity ? 0 : Math.max(0, 1 - Math.abs(d) / size);
-      heights.push(h);
-      heats.push(isOpen ? 1 : near);
-      extraTotal += extra;
-      if (isOpen) openBottom = top + size + extraTotal;
+      return { heights, heats, above, openCell, openBottom };
+    };
+    let held = hold.get();
+    let r = pass(at(held));
+    if (r.openCell >= 0) {
+      const shift = r.above + held;
+      const need = wrapTop.current + r.openBottom - shift - (window.innerHeight - MARGIN);
+      const room = wrapTop.current + PAD - shift - MARGIN;
+      let fit = Math.min(need, room);
+      const v = at(held);
+      if (v !== -Infinity && cellAt(v) === r.openCell) fit = Math.min(fit, cellTop(r.openCell + 1) - 1 - v);
+      if (fit > 0.5) {
+        held += fit;
+        hold.set(held);
+        r = pass(at(held));
+      }
     }
-    let shift = v === -Infinity ? 0 : above;
-    let slide = v === -Infinity ? 0 : held.current;
-    if (openBottom >= 0) {
-      const wrapTop = wrapRef.current?.getBoundingClientRect().top ?? 0;
-      const overflow = wrapTop + openBottom - shift - (window.innerHeight - MARGIN);
-      if (overflow > slide) slide = Math.min(overflow, Math.max(0, wrapTop - MARGIN - shift));
-    }
-    held.current = slide;
-    shift += slide;
-    return { heights, heats, shift, slide };
+    return { heights: r.heights, heats: r.heats, shift: r.above + held };
   });
   const shift = useSpring(
     useTransform(() => -layout.get().shift),
     spring,
   );
 
-  // Where the pointer is, read off the rows as they are on screen right now:
-  // the row under it, and its grid point (the resting coordinate the layout
-  // works in). Walking the rows' live rects, rather than subtracting the
-  // wrap's top, is what makes this right mid-transition too: the point is
-  // always the one under the cursor, never where the cursor would be once
-  // the springs settle.
-  const locate = useCallback(
-    (clientY: number): { v: number; name: string | null } => {
-      const size = tuning.size;
-      const open = expandedMV.get();
-      const slide = layout.get().slide;
-      let first: DOMRect | null = null;
-      let last: DOMRect | null = null;
-      for (let i = 0; i < entries.length; i++) {
-        const el = rowEls.current.get(entries[i].name);
-        if (!el) continue;
-        const r = el.getBoundingClientRect();
-        first ??= r;
-        last = r;
-        const top = PAD + i * size;
-        // An open row that the list slid up to keep on screen keeps the
-        // pointer for the slide's worth above its head, too: the pointer was
-        // on that head before the slide, and letting the row now under it
-        // take over would close the card, undo the slide, and loop.
-        if (entries[i].name === open && slide > 0 && clientY >= r.top - slide && clientY < r.top)
-          return { v: top + size / 2, name: entries[i].name };
-        // the head is the row's grid cell; its card, when open, is the
-        // cell's bottom edge
-        const headH = Math.max(1, r.height - cards[i].get());
-        if (clientY >= r.top && clientY < r.top + headH)
-          return { v: top + ((clientY - r.top) * size) / headH, name: entries[i].name };
-        if (clientY >= r.top + headH && clientY < r.bottom)
-          return { v: top + size - 0.5, name: entries[i].name };
-      }
-      if (first && clientY < first.top) return { v: PAD + (clientY - first.top), name: null };
-      if (last) return { v: PAD + entries.length * size + (clientY - last.bottom), name: null };
-      return { v: -Infinity, name: null };
+  /** the pointer is at this screen y; false if that is off every row */
+  const point = useCallback(
+    (clientY: number) => {
+      wrapTop.current = wrapRef.current?.getBoundingClientRect().top ?? 0;
+      const i = cellAt(clientY - wrapTop.current + hold.get());
+      if (i < 0) return false;
+      screenY.set(clientY);
+      setHot(entries[i].name);
+      return true;
     },
-    [entries, cards, tuning.size, expandedMV, layout],
+    [cellAt, entries, hold, screenY],
   );
+  const leave = useCallback(() => {
+    screenY.set(-Infinity);
+    setHot(null);
+    // nothing under the pointer and nothing open: the list goes home
+    if (!expandedMV.get()) hold.set(0);
+  }, [screenY, expandedMV, hold]);
 
-  const track = (e: { clientY: number }) => {
-    const { v, name } = locate(e.clientY);
-    pointer.set(v);
-    setHot(name);
-  };
-
-  // The mouse is followed on the window, not the wrap: rows are read by their
-  // live rects, so a cursor over a row that has strayed outside the wrap's
-  // resting box (pushed there by an open card) still counts, and a moment
-  // over nothing mid-transition is not a leave. Off every row is a leave.
+  // The mouse is followed on the window, not the wrap: rows pushed outside
+  // the wrap's resting box by an open card still count. Off every row is a
+  // leave.
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse') return;
       lastPointer.current = 'mouse';
-      const { v, name } = locate(e.clientY);
-      if (name) {
-        pointer.set(v);
-        setHot(name);
-      } else {
-        pointer.set(-Infinity);
-        setHot(null);
-      }
+      if (!point(e.clientY)) leave();
     };
     window.addEventListener('pointermove', onMove, { passive: true });
     return () => window.removeEventListener('pointermove', onMove);
-  }, [locate, pointer]);
-
-  const leave = () => {
-    pointer.set(-Infinity);
-    setHot(null);
-  };
+  }, [point, leave]);
 
   // the dwell: hold on a row for a while and it opens
   useEffect(() => {
@@ -266,6 +292,23 @@ function WatchList({ entries, tuning }: { entries: Entry[]; tuning: ListTuning }
     };
   }, [expanded]);
 
+  // A card closing above the pointer takes its height out of the grid
+  // there; the list is held up by the same amount so the rows under the
+  // pointer stay put. The Row starts the card's collapse in its own effect,
+  // which runs before this one, so the two steps land on the same frame.
+  const wasOpen = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = wasOpen.current;
+    wasOpen.current = expanded;
+    if (prev && prev !== expanded) {
+      const i = entries.findIndex((e) => e.name === prev);
+      const v = gridPoint();
+      if (i >= 0 && v !== -Infinity && v >= cellTop(i + 1)) hold.set(hold.get() - cards[i].get());
+    }
+    expandedMV.set(expanded);
+    if (!expanded && screenY.get() === -Infinity) hold.set(0);
+  }, [expanded, entries, cards, cellTop, gridPoint, hold, expandedMV, screenY]);
+
   const restHeight = entries.length * tuning.size + 2 * PAD;
 
   return (
@@ -280,14 +323,14 @@ function WatchList({ entries, tuning }: { entries: Entry[]; tuning: ListTuning }
           const t = touch.current;
           if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > TAP_SLOP) t.moved = true;
         }
-        track(e);
+        point(e.clientY);
       }}
       onPointerDown={(e) => {
         lastPointer.current = e.pointerType;
         if (e.pointerType === 'mouse') return;
         touch.current = { x: e.clientX, y: e.clientY, moved: false };
         opened.current = false;
-        track(e);
+        point(e.clientY);
       }}
       onPointerUp={(e) => {
         if (e.pointerType === 'mouse') return;

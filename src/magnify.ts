@@ -7,6 +7,16 @@
 //
 // `d` is signed: positive means the pointer is past the item (right of it,
 // or below it), so the item is pushed the other way.
+//
+// Items of different extents: `d` is measured to the item's *core*, which
+// is what is left of the item after `size`/2 is taken off each end. For a
+// standard item that is its centre point, and the curve is exactly the
+// classic one. For an item longer than `size` it is a segment, so the item
+// is at full scale across its extra length and the falloff starts from the
+// core's ends rather than from the middle; the neighbours measure to the
+// same core, so they only wake up when the pointer is really near them.
+// `spanDistance` is that measurement. The v1 dock has only standard items;
+// v2's open row (head plus card) is the long one.
 
 export type MagnifyTuning = {
   size: number; // resting item extent in px, along the magnified axis
@@ -24,4 +34,9 @@ export function magnify(d: number, tuning: MagnifyTuning): { scale: number; x: n
       ? Math.sign(d) * -tuning.nudge
       : (-d / tuning.distance) * tuning.nudge * scale;
   return { scale, x };
+}
+
+/** signed distance from `p` to the segment [a, b]: negative before it, 0 inside, positive past it */
+export function spanDistance(p: number, a: number, b: number): number {
+  return p < a ? p - a : p > b ? p - b : 0;
 }
