@@ -9,10 +9,10 @@
 // Neighbours are pushed by layout. The resting grid is rows at `size`;
 // growth and cards are extra inserted into it, and the list slides up by
 // exactly the extra above the pointer's grid point, so what is under the
-// pointer never moves and the geometry can never chase the cursor. While
-// the pointer is anywhere in an open row, the geometry is anchored to that
-// row's head, so hovering its card changes nothing. Click or tap launches,
-// as in v1. Only the dwell opens the detail.
+// pointer never moves and the geometry can never chase the cursor. An open
+// row's whole extent, head and card, maps onto its one grid cell, so the
+// rows below it wake up as the pointer nears the card's bottom edge. Click
+// or tap launches, as in v1. Only the dwell opens the detail.
 
 import {
   AnimatePresence,
@@ -99,13 +99,6 @@ function WatchList({ entries, tuning }: { entries: Entry[]; tuning: ListTuning }
   const [expanded, setExpanded] = useState<string | null>(null);
   const expandedMV = useMotionValue<string | null>(null);
   useEffect(() => expandedMV.set(expanded), [expanded, expandedMV]);
-  // the grid point the geometry is anchored to while the pointer is in the
-  // open row (its head centre); -1 when it should follow the pointer
-  const anchor = useMotionValue(-1);
-  useEffect(() => {
-    const i = hot && hot === expanded ? entries.findIndex((e) => e.name === hot) : -1;
-    anchor.set(i < 0 ? -1 : PAD + i * tuning.size + tuning.size / 2);
-  }, [hot, expanded, entries, tuning.size, anchor]);
   // touch bookkeeping: where the finger went down and whether the dwell has
   // already opened the row (in which case lifting the finger is not a tap)
   const touch = useRef<{ x: number; y: number; moved: boolean } | null>(null);
@@ -123,9 +116,7 @@ function WatchList({ entries, tuning }: { entries: Entry[]; tuning: ListTuning }
   // is still browsing would move the rows under it.
   const held = useRef(0);
   const layout = useTransform((): Layout => {
-    const raw = pointer.get();
-    const pin = anchor.get();
-    const v = raw === -Infinity ? -Infinity : pin >= 0 ? pin : raw;
+    const v = pointer.get();
     const open = expandedMV.get();
     const size = tuning.size;
     const heights: number[] = [];
@@ -192,11 +183,9 @@ function WatchList({ entries, tuning }: { entries: Entry[]; tuning: ListTuning }
         // take over would close the card, undo the slide, and loop.
         if (entries[i].name === open && slide > 0 && clientY >= r.top - slide && clientY < r.top)
           return { v: top + size / 2, name: entries[i].name };
-        const headH = Math.max(1, r.height - cards[i].get());
-        if (clientY >= r.top && clientY < r.top + headH)
-          return { v: top + ((clientY - r.top) * size) / headH, name: entries[i].name };
-        if (clientY >= r.top + headH && clientY < r.bottom)
-          return { v: top + size - 0.5, name: entries[i].name };
+        // the row's whole extent (head, and card when open) is its grid cell
+        if (clientY >= r.top && clientY < r.bottom)
+          return { v: top + ((clientY - r.top) * size) / Math.max(1, r.height), name: entries[i].name };
       }
       if (first && clientY < first.top) return { v: PAD + (clientY - first.top), name: null };
       if (last) return { v: PAD + entries.length * size + (clientY - last.bottom), name: null };
