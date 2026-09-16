@@ -10,9 +10,11 @@
 // growth and cards are extra inserted into it, and the list slides up by
 // exactly the extra above the pointer's grid point, so what is under the
 // pointer never moves and the geometry can never chase the cursor. An open
-// row's whole extent, head and card, maps onto its one grid cell, so the
-// rows below it wake up as the pointer nears the card's bottom edge. Click
-// or tap launches, as in v1. Only the dwell opens the detail.
+// row is still an ordinary row: its head grows and shrinks with the curve
+// like any other, it just stays lit and carries a card. The pointer over
+// the card counts as the bottom of that row's grid cell, so the row keeps
+// some growth there and the rows below wake as the pointer nears them.
+// Click or tap launches, as in v1. Only the dwell opens the detail.
 
 import {
   AnimatePresence,
@@ -107,8 +109,7 @@ function WatchList({ entries, tuning }: { entries: Entry[]; tuning: ListTuning }
 
   // The whole list's geometry from the pointer alone, once per change.
   // Grid: rows stacked at `size`. A row's growth is the curve at its grid
-  // centre (pinned to full while open); its extra is that growth plus its
-  // card. The shift is the extra accumulated above the pointer's grid
+  // centre; its extra is that growth plus its card. The shift is the extra accumulated above the pointer's grid
   // point, so that point stays where it is on screen. Then, if an open card
   // would run off the bottom of the viewport, the list slides up as far as
   // the top allows; rows below it may go off screen. The slide is held until
@@ -128,7 +129,7 @@ function WatchList({ entries, tuning }: { entries: Entry[]; tuning: ListTuning }
       const top = PAD + i * size;
       const isOpen = entries[i].name === open;
       const d = v === -Infinity ? -Infinity : v - (top + size / 2);
-      const grow = isOpen ? tuning.scale : magnify(d, curve).scale;
+      const grow = magnify(d, curve).scale;
       const h = size * grow;
       const extra = h - size + cards[i].get();
       if (v !== -Infinity) {
@@ -183,9 +184,13 @@ function WatchList({ entries, tuning }: { entries: Entry[]; tuning: ListTuning }
         // take over would close the card, undo the slide, and loop.
         if (entries[i].name === open && slide > 0 && clientY >= r.top - slide && clientY < r.top)
           return { v: top + size / 2, name: entries[i].name };
-        // the row's whole extent (head, and card when open) is its grid cell
-        if (clientY >= r.top && clientY < r.bottom)
-          return { v: top + ((clientY - r.top) * size) / Math.max(1, r.height), name: entries[i].name };
+        // the head is the row's grid cell; its card, when open, is the
+        // cell's bottom edge
+        const headH = Math.max(1, r.height - cards[i].get());
+        if (clientY >= r.top && clientY < r.top + headH)
+          return { v: top + ((clientY - r.top) * size) / headH, name: entries[i].name };
+        if (clientY >= r.top + headH && clientY < r.bottom)
+          return { v: top + size - 0.5, name: entries[i].name };
       }
       if (first && clientY < first.top) return { v: PAD + (clientY - first.top), name: null };
       if (last) return { v: PAD + entries.length * size + (clientY - last.bottom), name: null };
