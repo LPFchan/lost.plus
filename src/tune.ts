@@ -58,7 +58,6 @@ export const LIST_FIELDS: Field[] = [
   { label: 'size', def: 44, min: 28, max: 80, step: 1, digits: 0 },
   { label: 'scale', def: 1.5, min: 1, max: 2.5, step: 0.01, digits: 2 },
   { label: 'dist', def: 110, min: 20, max: 400, step: 1, digits: 0 },
-  { label: 'nudge', def: 22, min: 0, max: 80, step: 1, digits: 0 },
   { label: 'dwell', def: 2, min: 0.2, max: 6, step: 0.1, digits: 1 },
   { label: 'stiff', def: 220, min: 50, max: 600, step: 5, digits: 0 },
   { label: 'damp', def: 13, min: 4, max: 40, step: 0.5, digits: 1 },
@@ -69,7 +68,6 @@ export type ListTuning = {
   size: number;
   scale: number;
   distance: number;
-  nudge: number;
   dwellMs: number;
   stiffness: number;
   damping: number;
@@ -77,11 +75,8 @@ export type ListTuning = {
 };
 
 export function readListTuning(): ListTuning {
-  const [size, scale, distance, nudge, dwell, stiffness, damping, rest] = readValues(
-    LIST_KEY,
-    LIST_FIELDS,
-  );
-  return { size, scale, distance, nudge, dwellMs: dwell * 1000, stiffness, damping, rest };
+  const [size, scale, distance, dwell, stiffness, damping, rest] = readValues(LIST_KEY, LIST_FIELDS);
+  return { size, scale, distance, dwellMs: dwell * 1000, stiffness, damping, rest };
 }
 
 // ---- the scene's dim, for eras that dim ------------------------------------

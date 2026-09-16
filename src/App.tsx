@@ -15,7 +15,6 @@ export default function App() {
   look.current = era.look;
 
   useEffect(() => {
-    saveEra(era.id);
     document.documentElement.dataset.era = era.id;
     // Without WebGL nothing else drives the theme, so an era that wants dark
     // sets it here; with the scene running, Backdrop re-derives it per frame.
@@ -33,7 +32,13 @@ export default function App() {
       {/* The backdrop canvas is positioned, so unpositioned content would
           paint underneath it. Each era lifts its page into a layer above. */}
       <era.Component key={era.id} glass={glass} />
-      <EraSelector era={era.id} onChange={setEraId} />
+      <EraSelector
+        era={era.id}
+        onChange={(id) => {
+          saveEra(id);
+          setEraId(id);
+        }}
+      />
     </>
   );
 }

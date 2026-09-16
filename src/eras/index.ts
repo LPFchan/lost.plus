@@ -31,10 +31,15 @@ export function defaultEra(): string {
 
 const KEY = 'lp-era';
 
-/** `?era=` wins over the saved choice, and is saved for next time */
+/**
+ * `?era=` wins over the saved choice, and is saved for next time. A phone
+ * has no selector, so it never saved a choice of its own; a stale one from
+ * an earlier build is ignored there.
+ */
 export function initialEra(): string {
   const fromUrl = new URLSearchParams(location.search).get('era');
-  const id = fromUrl ?? localStorage.getItem(KEY) ?? defaultEra();
+  const saved = window.innerWidth < 640 ? null : localStorage.getItem(KEY);
+  const id = fromUrl ?? saved ?? defaultEra();
   const era = ERAS.some((e) => e.id === id) ? id : defaultEra();
   if (fromUrl && era === fromUrl) localStorage.setItem(KEY, era);
   return era;
