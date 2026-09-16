@@ -47,7 +47,8 @@ the detail, and a scrub does neither. The page itself never scrolls.
 
 Every number in the list (row size, scale, distance, dwell, spring,
 resting opacity) and the scene's dim are live in the tuning console (below,
-under "list"), stored in `lp-list` and `lp-dim`; `src/tune.ts` holds the
+under "list"), stored in `lp-list-2` and `lp-dim` (the list key is
+versioned because its slots are positional); `src/tune.ts` holds the
 fields and their defaults.
 
 ## Dock tray

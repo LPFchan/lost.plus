@@ -53,7 +53,10 @@ export function readValues(key: string, fields: Field[]): number[] {
 
 // ---- the v2 list ---------------------------------------------------------
 
-export const LIST_KEY = 'lp-list';
+// The slots are positional, so the key is versioned: bump it whenever a
+// field is added, removed or reordered, or saved values land in the wrong
+// field (a stale nudge once became a thirty-second dwell).
+export const LIST_KEY = 'lp-list-2';
 export const LIST_FIELDS: Field[] = [
   { label: 'size', def: 44, min: 28, max: 80, step: 1, digits: 0 },
   { label: 'scale', def: 1.5, min: 1, max: 2.5, step: 0.01, digits: 2 },
