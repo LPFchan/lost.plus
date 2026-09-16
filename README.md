@@ -10,7 +10,7 @@ swaps them live.
   rest small and grey; the ones around the pointer magnify vertically with
   the dock's own curve, and the one under it comes to life in colour. Hold
   there two seconds (a ring fills clockwise around the icon) and the row
-  opens into a blurb, a picture and links. Click or tap still launches.
+  opens into its links, a blurb and a picture. Click or tap still launches.
 
 Built with Vite + React + Tailwind v4 + framer-motion; the dock interaction
 started as the
@@ -28,13 +28,23 @@ exposure. Both eras read the one list in `src/entries.ts`; v2 also shows an
 entry's `about`, `media` and `links`.
 
 The choice persists in `localStorage` (`lp-era`); `?era=v1|v2` overrides it
-and is saved. `DEFAULT_ERA` is what a first visit gets. Phones never show
-the selector, so they always get the default (or the URL override).
+and is saved. A first visit gets `defaultEra()`: v1 on desktop, v2 on phones,
+which never show the selector.
 
 v2's list: `src/eras/v2/index.tsx`. The magnification curve it shares with
-the dock lives in `src/magnify.ts`. On touch the list is `touch-action:
-none`, so a finger scrubs the magnification instead of scrolling; a tap
-launches, a press-and-hold opens the detail, and a scrub does neither.
+the dock lives in `src/magnify.ts`. Rows measure their own resting place
+from the DOM on every move, so the list keeps magnifying while a row is
+open, and its extra height is just layout. Moving on to another row closes
+the open one at once and starts that row's dwell; a mouse leaving the list
+closes it, a lifted finger leaves it open for its links. On touch the list
+is `touch-action: none`, so a finger scrubs the magnification instead of
+scrolling; a tap launches, a press-and-hold opens the detail, and a scrub
+does neither.
+
+Every number in the list (row size, scale, distance, nudge, dwell, spring,
+resting opacity) and the scene's dim are live in the tuning console (below,
+under "list"), stored in `lp-list` and `lp-dim`; `src/tune.ts` holds the
+fields and their defaults.
 
 ## Dock tray
 

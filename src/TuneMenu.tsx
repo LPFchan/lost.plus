@@ -5,6 +5,108 @@
 // fires a lp:tune event; Backdrop and the hero re-read config on it.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  DIM_FIELDS,
+  DIM_KEY,
+  Field,
+  LIST_FIELDS,
+  LIST_KEY,
+  fmt,
+  getLS,
+  readGroup,
+  setLS,
+  writeGroup,
+} from './tune';
+
+const LENS_KEY = 'lp-lens';
+const LENS_FIELDS: Field[] = [
+  { label: 'bleed', def: 140, min: 0, max: 400, step: 1, digits: 0 },
+  { label: 'thick', def: 90, min: 4, max: 200, step: 0.5, digits: 0 },
+  { label: 'disp', def: 110, min: 0, max: 300, step: 1, digits: 0 },
+  { label: 'ior', def: 1.45, min: 1.0, max: 2.5, step: 0.005, digits: 2 },
+  { label: 'lod', def: 1.0, min: 0, max: 5, step: 0.02, digits: 1 },
+  { label: 'tint', def: -1, min: -1, max: 1, step: 0.01, digits: 2, emptyDef: true },
+];
+
+function numOr(f: Field, s: string): number {
+  const v = parseFloat(s);
+  return Number.isFinite(v) ? v : f.def;
+}
+
+/**
+ * A row of scrubbable fields. Press on a value and drag right to increase,
+ * left to decrease; a press that never moves is a click and focuses the
+ * input for typing instead, so both gestures share one control.
+ */
+function ScrubGroup({
+  storageKey,
+  fields,
+  values,
+  onChange,
+}: {
+  storageKey: string;
+  fields: Field[];
+  values: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const dragRef = useRef<{ i: number; startX: number; startV: number; moved: boolean } | null>(null);
+  const apply = (i: number, v: string) => {
+    const next = [...values];
+    next[i] = v;
+    writeGroup(storageKey, next);
+    onChange(next);
+  };
+  const onDown = (i: number) => (e: React.PointerEvent) => {
+    dragRef.current = { i, startX: e.clientX, startV: numOr(fields[i], values[i]), moved: false };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onMove = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const f = fields[d.i];
+    const dx = e.clientX - d.startX;
+    if (!d.moved && Math.abs(dx) < 3) return; // click slop
+    d.moved = true;
+    const per = (f.max - f.min) / 200; // 200px of drag crosses the whole range
+    let v = d.startV + dx * per;
+    v = Math.round(v / f.step) * f.step;
+    v = Math.min(f.max, Math.max(f.min, v));
+    apply(d.i, fmt(f, v));
+  };
+  const onUp = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (d && !d.moved) {
+      const input = (e.currentTarget as HTMLElement).querySelector('input');
+      input?.focus();
+      input?.select();
+    }
+  };
+  return (
+    <div className="tune-lens">
+      {fields.map((f, i) => (
+        <div
+          key={f.label}
+          className="tune-lens-field"
+          onPointerDown={onDown(i)}
+          onPointerMove={onMove}
+          onPointerUp={onUp}
+          title="drag to scrub, click to type"
+        >
+          <span>{f.label}</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={values[i]}
+            placeholder={f.emptyDef ? 'auto' : fmt(f, f.def)}
+            onChange={(e) => apply(i, e.target.value)}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 const SEQ = [
   'ArrowUp',
@@ -33,63 +135,6 @@ function readPerf(): Perf | null {
   return p && Number.isFinite(p.fps) ? p : null;
 }
 
-function getLS(key: string, fallback = ''): string {
-  return localStorage.getItem(key) ?? fallback;
-}
-
-function setLS(key: string, value: string) {
-  if (value === '') localStorage.removeItem(key);
-  else localStorage.setItem(key, value);
-  window.dispatchEvent(new Event('lp:tune'));
-}
-
-// One lens parameter: where it sits in the stored array, its default, the
-// drag range and how finely a pixel of dragging moves it.
-type LensField = {
-  key: number;
-  label: string;
-  def: number;
-  min: number;
-  max: number;
-  step: number;
-  digits: number; // decimals shown; -1 means "leave empty"
-  emptyDef?: boolean; // default is "not set", shown blank
-};
-
-const LENS_FIELDS: LensField[] = [
-  { key: 0, label: 'bleed', def: 140, min: 0, max: 400, step: 1, digits: 0 },
-  { key: 1, label: 'thick', def: 90, min: 4, max: 200, step: 0.5, digits: 0 },
-  { key: 2, label: 'disp', def: 110, min: 0, max: 300, step: 1, digits: 0 },
-  { key: 3, label: 'ior', def: 1.45, min: 1.0, max: 2.5, step: 0.005, digits: 2 },
-  { key: 4, label: 'lod', def: 1.0, min: 0, max: 5, step: 0.02, digits: 1 },
-  { key: 5, label: 'tint', def: -1, min: -1, max: 1, step: 0.01, digits: 2, emptyDef: true },
-];
-
-function fmt(f: LensField, v: number): string {
-  return v.toFixed(f.digits);
-}
-
-// The stored string keeps six slots; empty slots mean "default".
-function readLens(): string[] {
-  const raw = getLS('lp-lens');
-  const parts = raw ? raw.split(',') : [];
-  return LENS_FIELDS.map((f, i) => {
-    const v = parseFloat(parts[i] ?? '');
-    return Number.isFinite(v) ? fmt(f, v) : '';
-  });
-}
-
-function writeLens(parts: string[]) {
-  const out = [...parts];
-  while (out.length && out[out.length - 1] === '') out.pop();
-  setLS('lp-lens', out.join(','));
-}
-
-function numOr(f: LensField, s: string): number {
-  const v = parseFloat(s);
-  return Number.isFinite(v) ? v : f.def;
-}
-
 export default function TuneMenu() {
   const [open, setOpen] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -97,9 +142,10 @@ export default function TuneMenu() {
   const [quality, setQuality] = useState(() => getLS('lp-quality', '0.7'));
   const [sun, setSun] = useState(() => getLS('lp-sun'));
   const [cloud, setCloud] = useState(() => getLS('lp-cloud'));
-  const [lens, setLens] = useState<string[]>(readLens);
+  const [lens, setLens] = useState<string[]>(() => readGroup(LENS_KEY, LENS_FIELDS));
+  const [list, setList] = useState<string[]>(() => readGroup(LIST_KEY, LIST_FIELDS));
+  const [dim, setDim] = useState<string[]>(() => readGroup(DIM_KEY, DIM_FIELDS));
   const seqRef = useRef(0);
-  const dragRef = useRef<{ i: number; startX: number; startV: number; moved: boolean } | null>(null);
 
   // Rolling prefix match. A wrong key restarts the match; if that key is
   // the first of the sequence it counts as a new start.
@@ -139,55 +185,15 @@ export default function TuneMenu() {
     setLS('lp-cloud', v);
   }, []);
 
-  const applyLens = useCallback((i: number, v: string) => {
-    setLens((prev) => {
-      const next = [...prev];
-      next[i] = v;
-      writeLens(next);
-      return next;
-    });
-  }, []);
-
-  // Drag-to-scrub: press on the value, drag right to increase, left to
-  // decrease. A press that never moves is a click and focuses the input
-  // for typing instead, so both gestures share one control.
-  const onLensPointerDown = (i: number) => (e: React.PointerEvent) => {
-    const f = LENS_FIELDS[i];
-    dragRef.current = { i, startX: e.clientX, startV: numOr(f, lens[i]), moved: false };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  };
-  const onLensPointerMove = (e: React.PointerEvent) => {
-    const d = dragRef.current;
-    if (!d) return;
-    const f = LENS_FIELDS[d.i];
-    const dx = e.clientX - d.startX;
-    if (!d.moved && Math.abs(dx) < 3) return; // click slop
-    d.moved = true;
-    const range = f.max - f.min;
-    const per = range / 200; // 200px of drag crosses the whole range
-    let v = d.startV + dx * per;
-    v = Math.round(v / f.step) * f.step;
-    v = Math.min(f.max, Math.max(f.min, v));
-    applyLens(d.i, fmt(f, v));
-  };
-  const onLensPointerUp = (e: React.PointerEvent) => {
-    const d = dragRef.current;
-    dragRef.current = null;
-    if (d && !d.moved) {
-      // treat as a click: focus for typing and select the value
-      const input = (e.currentTarget as HTMLElement).querySelector('input');
-      input?.focus();
-      input?.select();
-    }
-  };
-
   const resetAll = () => {
-    for (const k of ['lp-quality', 'lp-sun', 'lp-cloud', 'lp-lens'])
+    for (const k of ['lp-quality', 'lp-sun', 'lp-cloud', LENS_KEY, LIST_KEY, DIM_KEY])
       localStorage.removeItem(k);
     setQuality('0.7');
     setSun('');
     setCloud('');
-    setLens(readLens());
+    setLens(readGroup(LENS_KEY, LENS_FIELDS));
+    setList(readGroup(LIST_KEY, LIST_FIELDS));
+    setDim(readGroup(DIM_KEY, DIM_FIELDS));
     window.dispatchEvent(new Event('lp:tune'));
   };
 
@@ -232,27 +238,11 @@ export default function TuneMenu() {
       </label>
       <button className="tune-link" onClick={() => applyCloud('')}>auto coverage</button>
 
-      <div className="tune-lens">
-        {LENS_FIELDS.map((f, i) => (
-          <div
-            key={f.key}
-            className="tune-lens-field"
-            onPointerDown={onLensPointerDown(i)}
-            onPointerMove={onLensPointerMove}
-            onPointerUp={onLensPointerUp}
-            title="drag to scrub, click to type"
-          >
-            <span>{f.label}</span>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={lens[i]}
-              placeholder={f.emptyDef ? 'auto' : fmt(f, f.def)}
-              onChange={(e) => applyLens(i, e.target.value)}
-            />
-          </div>
-        ))}
-      </div>
+      <ScrubGroup storageKey={LENS_KEY} fields={LENS_FIELDS} values={lens} onChange={setLens} />
+
+      <div className="tune-section">list</div>
+      <ScrubGroup storageKey={LIST_KEY} fields={LIST_FIELDS} values={list} onChange={setList} />
+      <ScrubGroup storageKey={DIM_KEY} fields={DIM_FIELDS} values={dim} onChange={setDim} />
 
       <button className="tune-reset" onClick={resetAll}>reset all</button>
     </div>

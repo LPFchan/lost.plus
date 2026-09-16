@@ -26,6 +26,7 @@
 
 import { RefObject, useEffect, useRef } from 'react';
 import type { HeroHandle } from './hero';
+import { dimOverride } from './tune';
 
 /** A panel that should be rendered as glass. */
 export type GlassTarget = {
@@ -529,7 +530,9 @@ export default function Backdrop({
       if (hero) {
         if (look.current !== appliedLook) {
           appliedLook = look.current;
-          hero.setLook(appliedLook);
+          // the console's dim only applies to an era that dims at all
+          const dim = appliedLook.dim > 0 ? (dimOverride() ?? appliedLook.dim) : 0;
+          hero.setLook({ ...appliedLook, dim });
         }
         hero.renderFrame(dt, elapsed, pointer);
         // three only allocates the GL texture for a render-target texture
@@ -683,6 +686,7 @@ export default function Backdrop({
     const onTune = () => {
       lens = lensConfig();
       quality = heroQuality();
+      appliedLook = null; // re-derive the look, the dim may have changed
       stageW = stageH = 0; // force a resize so the new quality takes now
       if (lens.tint >= 0)
         document.body.style.setProperty('--lens-tint', String(lens.tint));

@@ -311,6 +311,14 @@ body.lensing .glass-panel {
   color: inherit;
 }
 
+.tune-section {
+  margin: 10px 0 2px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
 .tune-reset {
   margin-top: 4px;
   padding: 4px 0;
@@ -319,7 +327,15 @@ body.lensing .glass-panel {
   opacity: 0.8;
 }
 
-.dark .tune-reset {
+.dark .tune-section {
+  margin: 10px 0 2px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.tune-reset {
   border-color: rgb(255 255 255 / 0.2);
 }
 
@@ -400,7 +416,10 @@ body.lensing .glass-panel {
 
 .v2-row {
   position: relative;
-  transform-origin: left center;
+}
+
+.v2-row-inner {
+  transform-origin: left calc(var(--size) / 2);
   will-change: transform;
 }
 
@@ -417,46 +436,18 @@ body.lensing .glass-panel {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* the icon is a circle, like on the watch; the macOS pipeline's inset and
-   shadow are undone, and its radius overridden */
 .v2-icon {
   position: relative;
   flex: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  overflow: hidden;
+  width: 38px;
+  height: 38px;
   will-change: filter;
-}
-
-.v2-icon .macos-icon {
-  padding: 0;
-  filter: none;
-}
-
-.v2-icon .macos-icon-content {
-  border-radius: 50%;
-}
-
-/* preshaped artwork carries its own inset; grow it a touch past the
-   pipeline's 16/13 so the circle is filled, not a squircle inside one */
-.v2-icon .macos-icon-content.treatment-preshaped {
-  transform: scale(calc(16 / 13 * 1.12));
-}
-
-.v2-ring {
-  position: absolute;
-  inset: -4px;
-  width: calc(100% + 8px);
-  height: calc(100% + 8px);
-  transform: rotate(-90deg);
-  pointer-events: none;
 }
 
 .v2-detail {
   overflow: hidden;
   /* under the label, not the icon */
-  padding-left: 46px;
+  padding-left: 52px;
 }
 
 .v2-detail-inner {
@@ -464,7 +455,7 @@ body.lensing .glass-panel {
 }
 
 .v2-about {
-  margin: 0 0 10px;
+  margin: 0;
   max-width: 34ch;
   font-size: 14px;
   line-height: 1.45;
@@ -475,7 +466,7 @@ body.lensing .glass-panel {
   display: block;
   width: 100%;
   max-height: 180px;
-  margin: 0 0 10px;
+  margin: 10px 0 0;
   border-radius: 8px;
   object-fit: cover;
 }
@@ -484,7 +475,7 @@ body.lensing .glass-panel {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
-  margin: 0;
+  margin: 0 0 8px;
   font-size: 13px;
 }
 

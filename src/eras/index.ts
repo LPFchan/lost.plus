@@ -24,16 +24,18 @@ export const ERAS: Era[] = [
   },
 ];
 
-/** what a visitor with no preference gets */
-export const DEFAULT_ERA = 'v1';
+/** what a visitor with no preference gets: phones (no selector) get v2 */
+export function defaultEra(): string {
+  return window.innerWidth < 640 ? 'v2' : 'v1';
+}
 
 const KEY = 'lp-era';
 
 /** `?era=` wins over the saved choice, and is saved for next time */
 export function initialEra(): string {
   const fromUrl = new URLSearchParams(location.search).get('era');
-  const id = fromUrl ?? localStorage.getItem(KEY) ?? DEFAULT_ERA;
-  const era = ERAS.some((e) => e.id === id) ? id : DEFAULT_ERA;
+  const id = fromUrl ?? localStorage.getItem(KEY) ?? defaultEra();
+  const era = ERAS.some((e) => e.id === id) ? id : defaultEra();
   if (fromUrl && era === fromUrl) localStorage.setItem(KEY, era);
   return era;
 }
