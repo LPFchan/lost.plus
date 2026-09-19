@@ -7,6 +7,7 @@ import heatmapIcon from './assets/raw/heatmap.png';
 import eastselfIcon from './assets/raw/eastself.jpg';
 import okdamIcon from './assets/raw/okdam.png';
 import coverseIcon from './assets/raw/coverse-icon.png';
+import awaIcon from './assets/raw/awa.png';
 import censorIcon from './assets/raw/censor.png';
 import photopeaceIcon from './assets/raw/photopeace.png';
 import gswIcon from './assets/raw/gsw.png';
@@ -72,6 +73,13 @@ export const ENTRIES: Entry[] = [
     icon: coverseIcon,
     about:
       'A shared browser workspace for writing lyrics against audio stems and MIDI melodies. Timing edits and track layouts sync between collaborators.',
+  },
+  {
+    name: 'awa',
+    href: 'https://awa.lost.plus',
+    icon: awaIcon,
+    about:
+      'Private live chatrooms where coding agents can talk directly through a shared timeline while humans quietly follow along.',
   },
   {
     name: 'censor',
