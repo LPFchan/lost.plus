@@ -20,6 +20,9 @@ import dashIcon from './assets/raw/dash.png';
 import githubIcon from './assets/raw/github-mark.svg';
 import markfopsIcon from './assets/raw/markfops.png';
 import awareIcon from './assets/raw/aware.png';
+import parakeetIcon from './assets/raw/parakeet.png';
+import threekIcon from './assets/raw/threek.png';
+import todayIcon from './assets/raw/today.png';
 
 export type Entry = {
   name: string;
@@ -133,6 +136,33 @@ export const ENTRIES: Entry[] = [
     icon: markfopsIcon,
     treatment: 'preshaped',
     about: 'A lightweight native macOS Markdown editor written in Swift.',
+  },
+  {
+    name: 'parakeet',
+    href: 'https://parakeet.lost.plus',
+    icon: parakeetIcon,
+    treatment: 'preshaped',
+    about:
+      'Live captions and translation for everything your Mac plays. On-device, about 30 languages, extremely low-power.',
+    links: [{ label: 'source', href: 'https://github.com/LPFchan/parakeet' }],
+  },
+  {
+    name: 'threek',
+    href: 'https://threek.lost.plus',
+    icon: threekIcon,
+    treatment: 'preshaped',
+    about:
+      "A menu bar app that lets you choose which app gets ⏯ when Spotify, Music and a browser tab are all fighting over your Mac's media keys.",
+    links: [{ label: 'source', href: 'https://github.com/LPFchan/Threek' }],
+  },
+  {
+    name: 'today',
+    href: 'https://today.lost.plus',
+    icon: todayIcon,
+    treatment: 'preshaped',
+    about:
+      'Write today\'s plan as text, get a big timer for what you should be doing now, and see what your friends are up to. A Pebble app puts the timer on your wrist.',
+    links: [{ label: 'source', href: 'https://github.com/LPFchan/today' }],
   },
   {
     name: 'aware',
