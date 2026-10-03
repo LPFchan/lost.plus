@@ -5,7 +5,8 @@ and both are kept: an **era selector** in the top-right corner (desktop only)
 swaps them live.
 
 - **v1** — a macOS dock (magnify on hover, spring physics, bounce on click)
-  over the sky, the trees and the bird. The default for now.
+  over the sky, the trees and the bird. The default for now. On phones its
+  folder grid scrolls within the panel when the entries exceed the screen height.
 - **v2** — a watchOS-style list over the same sky, dimmed, trees gone. Rows
   rest small and grey; the ones around the pointer magnify vertically with
   the dock's own curve, and the one under it comes to life in colour. Hold
@@ -54,7 +55,9 @@ the open one at once and starts that row's dwell; a mouse leaving the list
 closes it, a lifted finger leaves it open for its links. On touch the list
 is `touch-action: none`, so a finger scrubs the magnification instead of
 scrolling; a tap launches, a press-and-hold opens the detail, and a scrub
-does neither. The page itself never scrolls.
+does neither. The page itself never scrolls. Resting rows, including their icons and labels, shrink to fit the available
+viewport height, so adding entries keeps the complete list reachable on short
+screens.
 
 `scripts/v2-probe.cjs` drives the list with a synthetic mouse and finger in
 headless Chromium and prints the settled geometry of every row, step by

@@ -23,6 +23,9 @@ import awareIcon from './assets/raw/aware.png';
 import parakeetIcon from './assets/raw/parakeet.png';
 import threekIcon from './assets/raw/threek.png';
 import todayIcon from './assets/raw/today.png';
+import napcornerIcon from './assets/raw/napcorner.png';
+import nxgalleryIcon from './assets/raw/nxgallery.jpg';
+import twoBenchesIcon from './assets/raw/2benches.svg';
 
 export type Entry = {
   name: string;
@@ -186,5 +189,29 @@ export const ENTRIES: Entry[] = [
     icon: eastselfIcon,
     about:
       'A Telegram persona bot: an open model fine-tuned on my own messages and grounded by a memory store. "i always wanted to have a twin."',
+  },
+  {
+    name: 'napcorner',
+    href: 'https://napcorner.lost.plus',
+    icon: napcornerIcon,
+    treatment: 'preshaped',
+    about:
+      'A macOS display-sleep hot corner that waits until you mean it, so passing through the corner does not put your screen to sleep.',
+    links: [{ label: 'source', href: 'https://github.com/LPFchan/NapCorner' }],
+  },
+  {
+    name: 'nxgallery',
+    href: 'https://github.com/LPFchan/nxgallery',
+    icon: nxgalleryIcon,
+    about:
+      'A Nintendo Switch homebrew capture browser. Browse screenshots and videos, play captures, and share selected media to Telegram.',
+    links: [{ label: 'download', href: 'https://github.com/LPFchan/nxgallery/releases/latest' }],
+  },
+  {
+    name: '2benches',
+    href: 'https://2benches.lost.plus',
+    icon: twoBenchesIcon,
+    about:
+      'An Apple silicon benchmark explorer. Compare A- and M-series chips and Macs across Geekbench, AI, and llama.cpp workloads, with sources and clearly marked forecasts.',
   },
 ];

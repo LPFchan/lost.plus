@@ -92,7 +92,7 @@ export default function V2(_: EraProps) {
   }, []);
   const fitted = useMemo(() => {
     const room = (vh - 2 * PAD - 2 * MARGIN - 40) / ENTRIES.length;
-    return { ...tuning, size: Math.min(tuning.size, Math.max(28, Math.floor(room))) };
+    return { ...tuning, size: Math.min(tuning.size, Math.max(1, Math.floor(room))) };
   }, [tuning, vh]);
   return (
     <main className="relative z-10 flex h-full items-center justify-center">
@@ -458,7 +458,7 @@ function Row({
   );
   // the head is laid out at the resting size and scaled to fill whatever
   // height it has grown to
-  const headScale = useTransform(headHeight, (h) => h / tuning.size);
+  const headScale = useTransform(headHeight, (h) => h / Math.max(44, tuning.size));
   const heat = useSpring(
     useTransform(() => layout.get().heats[row]),
     { stiffness: 300, damping: 30 },

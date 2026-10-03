@@ -242,7 +242,7 @@ export default function Dock({
       <div className="min-[480px]:hidden">
         <div
           ref={gridRef}
-          className="glass-panel mx-auto grid w-full max-w-sm grid-cols-4 gap-x-2 gap-y-6 p-6"
+          className="glass-panel mx-auto grid w-full max-w-sm grid-cols-4 gap-x-2 gap-y-6 p-6 max-h-[calc(100dvh-32px)] overflow-y-auto"
           style={{ borderRadius: GRID_RADIUS }}
         >
           {entries.map((entry) => (
