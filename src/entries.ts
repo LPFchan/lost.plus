@@ -162,7 +162,6 @@ export const ENTRIES: Entry[] = [
     name: 'today',
     href: 'https://today.lost.plus',
     icon: todayIcon,
-    treatment: 'preshaped',
     about:
       'Write today\'s plan as text, get a big timer for what you should be doing now, and see what your friends are up to. A Pebble app puts the timer on your wrist.',
     links: [{ label: 'source', href: 'https://github.com/LPFchan/today' }],
