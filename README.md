@@ -204,7 +204,9 @@ entry in `src/entries.ts`. Every dock icon goes through a single CSS pipeline
 
 - content is 13/16 of the canvas (`padding: 9.375%`, symmetric on all sides)
 - corner radius is 22% of the content (`border-radius: 22%`)
-- soft drop shadow via `filter: drop-shadow(...)`
+- shadows copied from [icon.kitchen](https://icon.kitchen)'s macOS renderer:
+  an outer drop shadow plus a two-sided bevel (white from the top, black
+  from the bottom), sized in container units so they scale with the icon
 
 Geometry is never per-icon. Each entry only picks a **treatment** for its
 content inside the standard canvas:
@@ -212,7 +214,7 @@ content inside the standard canvas:
 | treatment    | use for | what happens |
 | ------------ | ------- | ------------ |
 | `cover` (default) | raw rectangular artwork | cover-fit, center-cropped, rounded |
-| `preshaped`  | artwork that is already a finished macOS icon | passed through, scaled by 16/13 to undo its baked-in canvas inset |
+| `preshaped`  | artwork that is already a finished macOS icon (824px body on a 1024 canvas) | clipped to its body, dropping any baked-in shadow, and scaled to fill the content box; keeps its own bevel |
 | `tile`       | a glyph (e.g. the github octocat) | placed on a colored rounded tile; tile fills the standard content box, glyph scale is derived |
 
 Because sizing lives in exactly one place, it is impossible for one icon to

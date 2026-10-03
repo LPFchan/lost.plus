@@ -93,16 +93,47 @@ body.lensing .glass-panel {
 
 /* macOS icon pipeline — every dock icon goes through this, no exceptions.
    Geometry from https://github.com/sundegan/macos-icon-generator:
-   canvas inset (1 - 13/16)/2 = 9.375%, corner radius 22% of the content,
-   soft drop shadow. Per-icon config only picks the *treatment* of the
+   canvas inset (1 - 13/16)/2 = 9.375%, corner radius 22% of the content.
+   Shadows copied from icon.kitchen's macOS renderer, in 1024-canvas units:
+   an outer shadow (black 25%, 14 down, blur σ 10) and a bevel of two inner
+   shadows (white 44% from the top, black 25% from the bottom). Mind the
+   blur units: drop-shadow() takes σ itself, box-shadow takes 2σ. Lengths
+   are in cqw of .macos-icon, so 100cqw is the whole canvas and the shadow
+   scales with the icon. Per-icon config only picks the *treatment* of the
    content inside the standard canvas; geometry is never per-icon. */
 
 .macos-icon {
   display: block;
   width: 100%;
   height: 100%;
+  container-type: inline-size;
+}
+
+.macos-icon-canvas {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
   padding: 9.375%;
-  filter: drop-shadow(0 0.15em 0.3em rgb(0 0 0 / 0.28));
+  filter: drop-shadow(0 calc(100cqw * 14 / 1024) calc(100cqw * 10 / 1024) rgb(0 0 0 / 0.25));
+}
+
+.macos-icon-canvas::after {
+  content: '';
+  position: absolute;
+  inset: 9.375%;
+  border-radius: 22%;
+  box-shadow:
+    inset 0 calc(100cqw * 4 / 1024) calc(100cqw * 2 / 1024) rgb(255 255 255 / 0.44),
+    inset 0 calc(100cqw * -3 / 1024) calc(100cqw * 4 / 1024) rgb(0 0 0 / 0.25);
+  pointer-events: none;
+}
+
+/* the bevel is part of the artwork's surface, not its surroundings:
+   finished art brings its own (icon.kitchen exports have exactly this one
+   baked in), so it would only double up */
+.macos-icon-canvas.treatment-preshaped::after {
+  content: none;
 }
 
 .macos-icon-content {
@@ -129,13 +160,16 @@ body.lensing .glass-panel {
   border-radius: 22%;
 }
 
-/* treatment: artwork already shaped as a macOS icon; pass through untouched */
+/* treatment: artwork already shaped as a macOS icon. Such art ships on a
+   1024 canvas with an 824 body (Apple's template, icon.kitchen's export)
+   and usually a shadow of its own baked into the margin. Clip to the body,
+   so only the pipeline's shadow shows, then scale the body up to fill our
+   content box exactly like pipeline-shaped icons. The clip radius is our
+   22% of the body: 22% × 824/1024. */
 .macos-icon-content.treatment-preshaped {
   object-fit: contain;
-  /* pre-shaped macOS icons ship on a 1024 canvas with their own 9.375%
-     inset; scale back up so their content fills our standard content box
-     exactly like pipeline-shaped icons */
-  transform: scale(calc(16 / 13));
+  clip-path: inset(calc(100% * 100 / 1024) round calc(22% * 824 / 1024));
+  transform: scale(calc(1024 / 824));
 }
 
 /* treatment: glyph on a colored tile (github style). The tile fills the

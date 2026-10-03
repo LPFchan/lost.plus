@@ -108,7 +108,11 @@ export function MacosIcon({ entry, alt }: { entry: DockEntry; alt: string }) {
         className={'macos-icon-content treatment-' + treatment}
       />
     );
-  return <span className="macos-icon select-none">{content}</span>;
+  return (
+    <span className="macos-icon select-none">
+      <span className={'macos-icon-canvas treatment-' + treatment}>{content}</span>
+    </span>
+  );
 }
 
 export default function Dock({
