@@ -458,7 +458,7 @@ function Row({
   );
   // the head is laid out at the resting size and scaled to fill whatever
   // height it has grown to
-  const headScale = useTransform(headHeight, (h) => h / tuning.size);
+  const headScale = useTransform(headHeight, (h) => h / Math.max(44, tuning.size));
   const heat = useSpring(
     useTransform(() => layout.get().heats[row]),
     { stiffness: 300, damping: 30 },

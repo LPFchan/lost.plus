@@ -55,7 +55,7 @@ the open one at once and starts that row's dwell; a mouse leaving the list
 closes it, a lifted finger leaves it open for its links. On touch the list
 is `touch-action: none`, so a finger scrubs the magnification instead of
 scrolling; a tap launches, a press-and-hold opens the detail, and a scrub
-does neither. The page itself never scrolls. Resting row heights shrink to fit the available
+does neither. The page itself never scrolls. Resting rows, including their icons and labels, shrink to fit the available
 viewport height, so adding entries keeps the complete list reachable on short
 screens.
 

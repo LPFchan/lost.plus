@@ -441,7 +441,7 @@ body.lensing .glass-panel {
   display: flex;
   align-items: center;
   gap: 14px;
-  height: var(--size);
+  height: max(44px, var(--size));
   transform-origin: left top;
   color: inherit;
   text-decoration: none;
