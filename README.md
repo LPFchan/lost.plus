@@ -5,7 +5,8 @@ and both are kept: an **era selector** in the top-right corner (desktop only)
 swaps them live.
 
 - **v1** — a macOS dock (magnify on hover, spring physics, bounce on click)
-  over the sky, the trees and the bird. The default for now.
+  over the sky, the trees and the bird. The default for now. On phones its
+  folder grid scrolls within the panel when the entries exceed the screen height.
 - **v2** — a watchOS-style list over the same sky, dimmed, trees gone. Rows
   rest small and grey; the ones around the pointer magnify vertically with
   the dock's own curve, and the one under it comes to life in colour. Hold
