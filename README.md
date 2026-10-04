@@ -214,7 +214,7 @@ content inside the standard canvas:
 | treatment    | use for | what happens |
 | ------------ | ------- | ------------ |
 | `cover` (default) | raw rectangular artwork | cover-fit, center-cropped, rounded |
-| `preshaped`  | artwork that is already a finished macOS icon (824px body on a 1024 canvas) | clipped to its body, dropping any baked-in shadow, and scaled to fill the content box; keeps its own bevel |
+| `preshaped`  | artwork that is already a finished macOS icon (824px body on a 1024 canvas) | masked to its exact squircle body (`src/assets/squircle.svg`, the ship skill frame's outline), dropping any baked-in shadow, and scaled to fill the content box; keeps its own bevel |
 | `tile`       | a glyph (e.g. the github octocat) | placed on a colored rounded tile; tile fills the standard content box, glyph scale is derived |
 
 Because sizing lives in exactly one place, it is impossible for one icon to

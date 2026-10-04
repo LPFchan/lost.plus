@@ -161,14 +161,14 @@ body.lensing .glass-panel {
 }
 
 /* treatment: artwork already shaped as a macOS icon. Such art ships on a
-   1024 canvas with an 824 body (Apple's template, icon.kitchen's export)
-   and usually a shadow of its own baked into the margin. Clip to the body,
-   so only the pipeline's shadow shows, then scale the body up to fill our
-   content box exactly like pipeline-shaped icons. The clip radius is our
-   22% of the body: 22% × 824/1024. */
+   1024 canvas with an 824 body (the ship skill's icon frame, Apple's
+   template, icon.kitchen) and usually a shadow of its own baked into the
+   margin. Mask it to exactly that body, the frame's squircle, so only the
+   pipeline's shadow shows, then scale the body up to fill our content box
+   exactly like pipeline-shaped icons. */
 .macos-icon-content.treatment-preshaped {
   object-fit: contain;
-  clip-path: inset(calc(100% * 100 / 1024) round calc(22% * 824 / 1024));
+  mask: url('./assets/squircle.svg') center / calc(100% * 824 / 1024) no-repeat;
   transform: scale(calc(1024 / 824));
 }
 
