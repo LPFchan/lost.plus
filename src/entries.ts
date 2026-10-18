@@ -3,6 +3,7 @@
 // links in its detail view. Drop a raw rectangular image into assets/raw/
 // and add an entry (see README, "Icons").
 
+import passageIcon from './assets/raw/passage.svg';
 import heatmapIcon from './assets/raw/heatmap.png';
 import eastselfIcon from './assets/raw/eastself.jpg';
 import okdamIcon from './assets/raw/okdam.png';
@@ -51,6 +52,14 @@ export type Entry = {
 };
 
 export const ENTRIES: Entry[] = [
+  {
+    name: 'passage',
+    href: 'https://passage.lost.plus',
+    icon: passageIcon,
+    about:
+      'A private secrets vault for each Common Auth account, available in your browser and through MCP. Age-encrypted storage with keys held by the server.',
+    links: [{ label: 'source', href: 'https://github.com/LPFchan/passage-mcp' }],
+  },
   {
     name: 'github',
     href: 'https://github.com/LPFchan',
