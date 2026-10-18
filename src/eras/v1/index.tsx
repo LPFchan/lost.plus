@@ -12,7 +12,7 @@ export default function V1({ glass }: EraProps) {
     try {
       // bump the version whenever the default order changes, so visitors
       // with a stale saved order get the new default
-      const saved = JSON.parse(localStorage.getItem('dock-order-v4') ?? 'null');
+      const saved = JSON.parse(localStorage.getItem('dock-order-v5') ?? 'null');
       if (!Array.isArray(saved)) return ENTRIES;
       const ordered = saved
         .map((name) => ENTRIES.find((e) => e.name === name))
@@ -25,7 +25,7 @@ export default function V1({ glass }: EraProps) {
   });
 
   useEffect(() => {
-    localStorage.setItem('dock-order-v4', JSON.stringify(entries.map((e) => e.name)));
+    localStorage.setItem('dock-order-v5', JSON.stringify(entries.map((e) => e.name)));
   }, [entries]);
 
   // three layout regimes by window width:
