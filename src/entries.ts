@@ -15,7 +15,6 @@ import gswIcon from './assets/raw/gsw.png';
 import artmuIcon from './assets/raw/artmu.png';
 import artmuDarkIcon from './assets/raw/artmu-dark.png';
 import chatIcon from './assets/raw/chat.png';
-import chatLightIcon from './assets/raw/chat-light.png';
 import setupIcon from './assets/raw/setup.png';
 import dashIcon from './assets/raw/dash.png';
 import githubIcon from './assets/raw/github-mark.svg';
@@ -137,7 +136,7 @@ export const ENTRIES: Entry[] = [
     name: 'chat',
     href: 'https://chat.lost.plus',
     icon: chatIcon,
-    darkIcon: chatLightIcon,
+    treatment: 'preshaped',
     about:
       'An OpenAI-compatible gateway in front of self-hosted models: llama.cpp on one GPU box, vLLM on another, one endpoint for all of them.',
     links: [{ label: 'source', href: 'https://github.com/LPFchan/inference' }],
