@@ -4,7 +4,7 @@
 @font-face {
   font-family: 'Gaegu';
   font-weight: 300;
-  font-display: swap;
+  font-display: block;
   src: url('@fontsource/gaegu/files/gaegu-latin-300-normal.woff2') format('woff2');
 }
 
@@ -13,7 +13,7 @@
    for Hangul: Latin in a Korean line stays in Gaegu. */
 @font-face {
   font-family: 'Nanum Amsterdam';
-  font-display: swap;
+  font-display: block;
   size-adjust: 122%;
   unicode-range: U+AC00-D7A3;
   src: url('./fonts/nanum-amsterdam-ko.woff2') format('woff2');
@@ -408,6 +408,20 @@ a {
 
 /* ---- the newest post, pinned above the page: plain type, no paper ---- */
 
+.page:not(.ready) .band,
+.page:not(.ready) .sheet,
+.page:not(.ready) .thread {
+  opacity: 0;
+}
+
+@keyframes news-in {
+  0%   { opacity: 0.45; transform: translate3d(0, -8.8px, 0); }
+  25%  { opacity: 0.85; transform: translate3d(0, -4.1px, 0); }
+  50%  { opacity: 1;    transform: translate3d(0, -1.1px, 0); }
+  75%  { opacity: 1;    transform: translate3d(0, -0.1px, 0); }
+  100% { opacity: 1;    transform: translate3d(0, 0, 0); }
+}
+
 .news {
   display: flex;
   justify-content: center;
@@ -419,6 +433,11 @@ a {
   letter-spacing: 0;
   font-size-adjust: none;
   text-decoration: none;
+  opacity: 0;
+}
+
+.page.ready .news {
+  animation: news-in 333.33ms steps(1, end) 583.33ms forwards;
 }
 
 .news b {
@@ -579,5 +598,11 @@ footer {
   .scene .art,
   .door {
     transition: none;
+  }
+
+  .page.ready .news {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }

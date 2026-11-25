@@ -9,6 +9,81 @@
   max-width: 94%;
 }
 
+/* 12fps stop-motion entrance: spring math sampled every 83.33ms, with one
+   quick stepped rotation wiggle as each scrap lands */
+@keyframes hero-card-in {
+  0%       { opacity: 0.85; transform: translate3d(0, 14px, 0) scale(0.91) rotate(-4.5deg); }
+  33.333%  { opacity: 1;    transform: translate3d(0, -1px, 0) scale(1.02) rotate(2.4deg); }
+  66.666%  { opacity: 1;    transform: translate3d(0, -0.3px, 0) scale(1.004) rotate(-0.8deg); }
+  100%     { opacity: 1;    transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+}
+
+@keyframes hero-photo-in {
+  0%       { opacity: 0.82; transform: translate3d(calc(var(--dx) * 0.78), calc(var(--dy) * 0.78), 0) scale(0.89) rotate(var(--w)); }
+  33.333%  { opacity: 1;    transform: translate3d(calc(var(--dx) * -0.05), calc(var(--dy) * -0.05), 0) scale(1.03) rotate(calc(var(--w) * -0.48)); }
+  66.666%  { opacity: 1;    transform: translate3d(calc(var(--dx) * -0.015), calc(var(--dy) * -0.015), 0) scale(1.005) rotate(calc(var(--w) * 0.18)); }
+  100%     { opacity: 1;    transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+}
+
+/* spring-draw (k=180, c=26.8) sampled at 12fps (5 frames = 416.67ms) */
+@keyframes hero-thread-in {
+  0%   { opacity: 1; stroke-dashoffset: 0.854; }
+  20%  { opacity: 1; stroke-dashoffset: 0.466; }
+  40%  { opacity: 1; stroke-dashoffset: 0.213; }
+  60%  { opacity: 1; stroke-dashoffset: 0.089; }
+  80%  { opacity: 1; stroke-dashoffset: 0.036; }
+  100% { opacity: 1; stroke-dashoffset: 0; }
+}
+
+/* spring-draw (k=260, c=32) sampled at 12fps (3 frames = 250ms) */
+@keyframes hero-stroke-in {
+  0%       { opacity: 1; stroke-dashoffset: 0.806; }
+  33.333%  { opacity: 1; stroke-dashoffset: 0.364; }
+  66.666%  { opacity: 1; stroke-dashoffset: 0.133; }
+  100%     { opacity: 1; stroke-dashoffset: 0; }
+}
+
+@keyframes hero-plus-wiggle {
+  0%   { transform: scale(0.88) rotate(-7deg); }
+  50%  { transform: scale(1.04) rotate(3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.hero-card-in {
+  opacity: 0;
+}
+
+.page.ready .hero-card-in {
+  animation: hero-card-in 250ms steps(1, end) 0ms forwards;
+}
+
+.hero-photo {
+  position: absolute;
+  pointer-events: none;
+  transform: rotate(var(--rot));
+}
+
+.hero-photo-in {
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.page.ready .hero-photo-in {
+  animation: hero-photo-in 250ms steps(1, end) var(--delay) forwards;
+}
+
+/* the golden thread emerges from under the title card on beat 6 (500ms) */
+.hero-thread {
+  opacity: 0;
+  stroke-dasharray: 1 1.05;
+  stroke-dashoffset: 1.05;
+}
+
+.page.ready .hero-thread {
+  animation: hero-thread-in 416.67ms steps(1, end) 500ms forwards;
+}
+
 .hero .hero-title {
   max-width: 440px;
   padding: 24px 34px 26px;
@@ -54,10 +129,26 @@
   margin-top: 0;
 }
 
-/* the plus sits inside the drawing, so it has to win back its own colour */
+.page.ready .hero .hero-plus .plus {
+  animation: hero-plus-wiggle 166.67ms steps(1, end) 833.33ms forwards;
+}
+
+/* the plus sits inside the drawing, so it has to win back its own colour;
+   its two strokes ink in on beats 10 & 11 as the golden thread reaches the foot */
 .hero-plus .plus path {
   stroke: var(--mark);
   stroke-width: 2;
+  opacity: 0;
+  stroke-dasharray: 1 1.08;
+  stroke-dashoffset: 1.08;
+}
+
+.page.ready .hero-plus .plus .plus-v {
+  animation: hero-stroke-in 250ms steps(1, end) 833.33ms forwards;
+}
+
+.page.ready .hero-plus .plus .plus-h {
+  animation: hero-stroke-in 250ms steps(1, end) 916.67ms forwards;
 }
 
 /* the stacked plan, as in hero.tsx */
@@ -78,5 +169,18 @@
 
   .hero .hero-title h1 {
     font-size: calc(min(612px, 150vw) / var(--n));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page.ready .hero-card-in,
+  .page.ready .hero-photo-in,
+  .page.ready .hero-thread,
+  .page.ready .hero .hero-plus .plus,
+  .page.ready .hero-plus .plus path {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    stroke-dashoffset: 0;
   }
 }

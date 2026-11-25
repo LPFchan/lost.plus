@@ -1,10 +1,10 @@
 // lost.plus: the welcome page for fleet. One long sheet of paper, a scene
 // per idea (src/scenes/), and a thread through all of them.
 
-import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import Thread from './Thread';
 import { tear, tearAround } from './ink';
-import { LANG } from './i18n';
+import { handReady, LANG } from './i18n';
 import { Plus } from './kit';
 import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import Hero from './scenes/hero';
@@ -51,9 +51,44 @@ export function Band({ kind, seed, children }: { kind: 'night' | 'tan'; seed: nu
 
 export default function App() {
   const page = useRef<HTMLElement>(null);
+  const [ready, setReady] = useState(false);
+
+  // Hold the page on bare paper until the active language's hand and
+  // Pretendard have loaded, so no fallback type flashes before the opening.
+  useEffect(() => {
+    let alive = true;
+    const frame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+    const wait = async () => {
+      await handReady;
+      if (document.fonts) {
+        const root = page.current;
+        const targets = root ? [...root.querySelectorAll('.hero h1, .hero p, .news, .news b, .news strong')] : [];
+        if (targets.length) {
+          await Promise.allSettled(
+            targets.map((el) => {
+              const s = getComputedStyle(el);
+              return document.fonts.load(`${s.fontStyle} ${s.fontWeight} ${s.fontSize} ${s.fontFamily}`, el.textContent ?? '');
+            }),
+          );
+        } else {
+          await document.fonts.ready;
+        }
+      }
+      // Flush pre-entrance layout and wait one frame so CSS transitions always
+      // run from their hidden starting state, even on cached reloads.
+      void page.current?.offsetHeight;
+      await frame();
+    };
+    const fallback = new Promise<void>((r) => setTimeout(r, 2500));
+    Promise.race([wait(), fallback]).then(() => {
+      if (alive) setReady(true);
+    });
+    return () => { alive = false; };
+  }, []);
 
   // A scene comes in once, when it is first scrolled to.
   useEffect(() => {
+    if (!ready) return;
     const seen = new IntersectionObserver(
       (entries) => {
         for (const e of entries)
@@ -66,11 +101,11 @@ export default function App() {
     );
     page.current!.querySelectorAll('.scene').forEach((el) => seen.observe(el));
     return () => seen.disconnect();
-  }, []);
+  }, [ready]);
 
   return (
-    <main className="page" ref={page}>
-      <Thread />
+    <main className={`page${ready ? ' ready' : ''}`} ref={page}>
+      <Thread ready={ready} />
 
       <a className="news" href={NEWS.href} lang={KOREAN ? 'ko' : 'en'}>
         <b>NEW</b>

@@ -583,7 +583,9 @@ const HANDS: Partial<Record<Lang, () => Promise<unknown>>> = {
   hi: () => import('@fontsource/kalam/300.css'),
   ar: () => import('@fontsource/playpen-sans-arabic/300.css'),
 };
-void (HANDS[LANG] ?? (() => import('@fontsource/playpen-sans/300.css')))();
+export const handReady: Promise<unknown> = (
+  HANDS[LANG] ?? (() => import('@fontsource/playpen-sans/300.css'))
+)().catch(() => {});
 
 document.documentElement.lang = LANG;
 document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';

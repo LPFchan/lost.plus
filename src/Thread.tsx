@@ -11,7 +11,7 @@ const AHEAD = 0.62; // the pen stays this far down the viewport
 const STIFFNESS = 90;
 const DAMPING = 17; // a little under critical: the pen settles, barely
 
-export default function Thread() {
+export default function Thread({ ready }: { ready: boolean }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
 
@@ -28,6 +28,7 @@ export default function Thread() {
     let target = 0;
     let raf = 0;
     let last = 0;
+    let armed = ready && still;
 
     const show = () => {
       path.style.strokeDashoffset = String(Math.max(0, total - pos));
@@ -47,6 +48,7 @@ export default function Thread() {
 
     // The thread stays drawn: scrolling back up does not unpick it.
     const aim = () => {
+      if (!armed) return;
       const y = scrollY + innerHeight * AHEAD;
       let len = 0;
       for (const s of reach) {
@@ -63,6 +65,11 @@ export default function Thread() {
         last = performance.now();
         raf = requestAnimationFrame(tick);
       }
+    };
+
+    const onScroll = () => {
+      if (ready && !armed) armed = true;
+      aim();
     };
 
     const layout = () => {
@@ -116,13 +123,21 @@ export default function Thread() {
     const sizes = new ResizeObserver(layout);
     sizes.observe(page);
     document.fonts?.ready.then(layout);
-    addEventListener('scroll', aim, { passive: true });
+    addEventListener('scroll', onScroll, { passive: true });
+    // Let the hero's golden thread reach the plus before continuing down the page.
+    const handoff = ready && !still
+      ? setTimeout(() => {
+          armed = true;
+          aim();
+        }, 833)
+      : undefined;
     return () => {
+      if (handoff) clearTimeout(handoff);
       sizes.disconnect();
-      removeEventListener('scroll', aim);
+      removeEventListener('scroll', onScroll);
       cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [ready]);
 
   return (
     <svg ref={svgRef} className="thread" aria-hidden="true">

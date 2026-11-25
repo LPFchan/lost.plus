@@ -17,7 +17,7 @@ export const MACHINES = Object.fromEntries(
   (Object.keys(BB) as Kind[]).map((k) => [k, { bb: BB[k] }]),
 ) as Record<Kind, { bb: Bounds }>;
 
-type Spot = { kind: Kind; x: number; y: number; rot: number; s: number; tone: string; seed: number };
+type Spot = { kind: Kind; x: number; y: number; rot: number; s: number; tone: string; seed: number; order: number };
 /** `card` is where the middle of the title card sits */
 type Plan = { h: number; x: [number, number]; card: Pt; spots: Spot[]; thread: Pt[] };
 
@@ -26,18 +26,19 @@ const SWEATER = '#f1e6d9';
 const ASH = '#e3dace';
 const TAN = '#ebdcca';
 
-// a ring of six around the card
+// a ring of six around the card; `order` fans them out clockwise on load
+// without disturbing the overlap order of the pile
 const WIDE: Plan = {
   h: 640,
   x: [0, 940],
   card: [470, 318],
   spots: [
-    { kind: 'laptop', x: 150, y: 14, rot: -3, s: 1, tone: CREAM, seed: 215 },
-    { kind: 'rack', x: 456, y: 30, rot: 2, s: 1, tone: ASH, seed: 209 },
-    { kind: 'tower', x: 706, y: 196, rot: -2, s: 1, tone: SWEATER, seed: 205 },
-    { kind: 'nas', x: 26, y: 212, rot: 2.5, s: 1, tone: TAN, seed: 207 },
-    { kind: 'mini', x: 172, y: 430, rot: -2.5, s: 1.45, tone: CREAM, seed: 203 },
-    { kind: 'puck', x: 508, y: 412, rot: 3, s: 1, tone: ASH, seed: 211 },
+    { kind: 'laptop', x: 150, y: 14, rot: -3, s: 1, tone: CREAM, seed: 215, order: 0 },
+    { kind: 'rack', x: 456, y: 30, rot: 2, s: 1, tone: ASH, seed: 209, order: 1 },
+    { kind: 'tower', x: 706, y: 196, rot: -2, s: 1, tone: SWEATER, seed: 205, order: 2 },
+    { kind: 'nas', x: 26, y: 212, rot: 2.5, s: 1, tone: TAN, seed: 207, order: 5 },
+    { kind: 'mini', x: 172, y: 430, rot: -2.5, s: 1.45, tone: CREAM, seed: 203, order: 4 },
+    { kind: 'puck', x: 508, y: 412, rot: 3, s: 1, tone: ASH, seed: 211, order: 3 },
   ],
   thread: [[470, 360], [484, 430], [490, 520], [480, 600], [470, 640]],
 };
@@ -48,18 +49,20 @@ const NARROW: Plan = {
   x: [0, 520],
   card: [260, 487],
   spots: [
-    { kind: 'laptop', x: 0, y: 6, rot: -3, s: 1, tone: CREAM, seed: 215 },
-    { kind: 'tower', x: 312, y: 0, rot: 2, s: 1, tone: SWEATER, seed: 205 },
-    { kind: 'rack', x: 96, y: 204, rot: -2, s: 1, tone: ASH, seed: 209 },
-    { kind: 'mini', x: 124, y: 594, rot: 2, s: 1.45, tone: CREAM, seed: 203 },
-    { kind: 'nas', x: 4, y: 748, rot: 2.5, s: 1, tone: TAN, seed: 207 },
-    { kind: 'puck', x: 312, y: 768, rot: -3, s: 1, tone: SWEATER, seed: 211 },
+    { kind: 'laptop', x: 0, y: 6, rot: -3, s: 1, tone: CREAM, seed: 215, order: 0 },
+    { kind: 'tower', x: 312, y: 0, rot: 2, s: 1, tone: SWEATER, seed: 205, order: 1 },
+    { kind: 'rack', x: 96, y: 204, rot: -2, s: 1, tone: ASH, seed: 209, order: 2 },
+    { kind: 'mini', x: 124, y: 594, rot: 2, s: 1.45, tone: CREAM, seed: 203, order: 3 },
+    { kind: 'nas', x: 4, y: 748, rot: 2.5, s: 1, tone: TAN, seed: 207, order: 4 },
+    { kind: 'puck', x: 312, y: 768, rot: -3, s: 1, tone: SWEATER, seed: 211, order: 5 },
   ],
   thread: [[260, 540], [270, 742], [276, 842], [264, 932], [260, 978]],
 };
 
 /** the paper around a machine, in the drawing's own units */
 const PAD = 22;
+/** room around the paper for its shadow and strokes that run past corners */
+const BLEED = 18;
 
 /** where a spot's paper and its drawing land */
 function place(spot: Spot) {
@@ -72,16 +75,49 @@ function place(spot: Spot) {
 }
 
 /** a photograph's worth of paper, torn deeper than the kit's so the pile
-    reads as paper at this size */
-function Photo({ spot }: { spot: Spot }) {
+    reads as paper at this size. Rendered as its own HTML layer over the
+    thread so its entrance animates on the compositor without re-stroking
+    every path on the main thread. */
+function Photo({ spot, plan }: { spot: Spot; plan: Plan }) {
   const { w, h, at, c } = place(spot);
   const d = useMemo(() => torn(rng(spot.seed), spot.x, spot.y, w, h, 7), [spot, w, h]);
+  const span = plan.x[1] - plan.x[0];
+  const vx = c[0] - plan.card[0];
+  const vy = c[1] - plan.card[1];
+  const dist = Math.hypot(vx, vy) || 1;
+  const pull = 34;
+  const dx = -(vx / dist) * pull;
+  const dy = -(vy / dist) * pull;
+  // snap delays to the 12fps stop-motion clock (83.33ms per frame)
+  const delay = ((spot.order + 1) * 1000) / 12;
+  const bx = spot.x - BLEED;
+  const by = spot.y - BLEED;
+  const bw = w + BLEED * 2;
+  const bh = h + BLEED * 2;
   return (
-    <g transform={`rotate(${spot.rot} ${c[0]} ${c[1]})`} data-machine={spot.kind}>
-      <path d={d} className="shade" transform="translate(4 6)" />
-      <path d={d} className="paper" style={{ fill: spot.tone }} />
-      <Machine kind={spot.kind} at={at} s={spot.s} seed={spot.seed + 1} />
-    </g>
+    <div
+      className="hero-photo"
+      data-machine={spot.kind}
+      style={{
+        left: `${((bx - plan.x[0]) / span) * 100}%`,
+        top: `${(by / plan.h) * 100}%`,
+        width: `${(bw / span) * 100}%`,
+        height: `${(bh / plan.h) * 100}%`,
+        '--rot': `${spot.rot}deg`,
+        '--dx': `${dx.toFixed(1)}px`,
+        '--dy': `${dy.toFixed(1)}px`,
+        '--w': `${spot.rot > 0 ? -5.5 : 5.5}deg`,
+        '--delay': `${delay.toFixed(2)}ms`,
+      } as CSSProperties}
+    >
+      <div className="hero-photo-in">
+        <svg viewBox={`${bx} ${by} ${bw} ${bh}`} aria-hidden="true">
+          <path d={d} className="shade" transform="translate(4 6)" />
+          <path d={d} className="paper" style={{ fill: spot.tone }} />
+          <Machine kind={spot.kind} at={at} s={spot.s} seed={spot.seed + 1} />
+        </svg>
+      </div>
+    </div>
   );
 }
 
@@ -106,14 +142,19 @@ function Pinboard({ plan }: { plan: Plan }) {
       x={plan.x}
       labels={
         <>
+          {plan.spots.map((spot) => (
+            <Photo key={spot.kind} spot={spot} plan={plan} />
+          ))}
           <div
             className="hero-card"
             style={{ left: `${((plan.card[0] - plan.x[0]) / (plan.x[1] - plan.x[0])) * 100}%`, top: `${(plan.card[1] / plan.h) * 100}%` }}
           >
-            <Scrap seed={3} className="title hero-title">
-              <h1 style={{ '--n': Math.max(17, [...t.title].length) } as CSSProperties}>{t.title}</h1>
-              <p>{t.tagline}</p>
-            </Scrap>
+            <div className="hero-card-in">
+              <Scrap seed={3} className="title hero-title">
+                <h1 style={{ '--n': Math.max(17, [...t.title].length) } as CSSProperties}>{t.title}</h1>
+                <p>{t.tagline}</p>
+              </Scrap>
+            </div>
           </div>
           <span className="hero-plus">
             <Plus size={34} knot />
@@ -122,10 +163,7 @@ function Pinboard({ plan }: { plan: Plan }) {
       }
     >
       {/* the thread is laid down first: it runs under the photographs */}
-      <path d={thread} className="gold" />
-      {plan.spots.map((spot) => (
-        <Photo key={spot.kind} spot={spot} />
-      ))}
+      <path d={thread} className="gold hero-thread" pathLength={1} />
     </Art>
   );
 }

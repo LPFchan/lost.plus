@@ -155,13 +155,14 @@ export function Glyph({ kind, at, seed, s = 1, rot = 0, back, className }: {
 
 /** lost.plus's own mark: a plus, in two strokes. `knot` hangs the thread from it. */
 export function Plus({ size = 28, knot }: { size?: number; knot?: boolean }) {
-  const d = useMemo(() => {
+  const [v, h] = useMemo(() => {
     const r = rng(3);
-    return stroke(r, [0, -9], [0, 9], 0.5) + stroke(r, [-9, 0], [9, 0], 0.5);
+    return [stroke(r, [0, -9], [0, 9], 0.5), stroke(r, [-9, 0], [9, 0], 0.5)] as const;
   }, []);
   return (
     <svg className="plus" width={size} height={size} viewBox="-12 -12 24 24" aria-hidden="true" data-thread={knot ? '' : undefined}>
-      <path d={d} />
+      <path className="plus-v" d={v} pathLength={1} />
+      <path className="plus-h" d={h} pathLength={1} />
     </svg>
   );
 }
