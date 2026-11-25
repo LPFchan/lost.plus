@@ -410,8 +410,7 @@ a {
   justify-content: center;
   align-items: baseline;
   gap: 10px;
-  padding: 10px 16px;
-  border-bottom: 1px solid rgb(33 24 17 / 0.12);
+  padding: 26px 16px 16px;
   color: var(--ink);
   font: 400 14px/1.45 'Pretendard Variable', Pretendard, system-ui, sans-serif;
   letter-spacing: 0;
@@ -423,6 +422,10 @@ a {
   flex: none;
   color: #d9580d;
   font-weight: 700;
+}
+
+.news strong {
+  font-weight: 600;
 }
 
 .news:hover span:first-of-type {
