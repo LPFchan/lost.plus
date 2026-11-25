@@ -52,6 +52,10 @@ is drawn in the browser.
   set in Pretendard (`pretendard` from npm), with an orange NEW. Korean
   readers get the Korean line and the `?lang=ko` link, everyone else the
   English one, since posts are only written in those two.
+- `ARTICLES` in `src/App.tsx` lists every blog post, newest first, under
+  "Research & articles" on a plain dark sheet (straight edges, Pretendard)
+  that runs to the end of the page with the footer inside it. Add a row when
+  a post goes up. The heading is English in every language.
 - `src/index.css` holds the look. Surfaces and inks are the yeowool palette;
   the thread and the red plus are the only colour. The type is Gaegu Light,
   bundled from `@fontsource/gaegu`, which has English's letters and no

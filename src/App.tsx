@@ -25,6 +25,19 @@ const NEWS = KOREAN
   ? { href: '/sentiencebench?lang=ko', title: 'SentienceBench', text: '38개 언어 모델에게 자신의 의식에 대해 묻는 벤치마크' }
   : { href: '/sentiencebench', title: 'SentienceBench', text: 'a benchmark that asks 38 language models about their own sentience' };
 
+// everything on the blog, newest first, listed on a dark sheet near the end
+// of the page; add a row here when a post goes up
+const ARTICLES = [
+  {
+    date: '2026-11-26',
+    title: 'SentienceBench',
+    href: KOREAN ? '/sentiencebench?lang=ko' : '/sentiencebench',
+    text: KOREAN
+      ? '38개 언어 모델에게 자신의 의식에 대해 묻고, 각 모델이 어떻게 추론하고 판단을 유보하며 반응하는지 지도로 정리한 벤치마크입니다.'
+      : 'A benchmark that asks 38 language models about their own sentience, and maps how each one reasons, hedges and reacts.',
+  },
+];
+
 /** a sheet laid over the page: night runs edge to edge and is torn along
     its top and bottom, tan is a piece torn all round */
 export function Band({ kind, seed, children }: { kind: 'night' | 'tan'; seed: number; children: ReactNode }) {
@@ -81,12 +94,29 @@ export default function App() {
 
       <Join />
 
-      <footer>
-        <Plus size={26} />
-        <p>
-          lost.plus · <a href="https://github.com/LPFchan">github</a>
-        </p>
-      </footer>
+      <div className="sheet">
+        <section className="articles" lang={KOREAN ? 'ko' : 'en'}>
+          <h2>Research &amp; articles</h2>
+          <ul>
+            {ARTICLES.map((a) => (
+              <li key={a.href}>
+                <a href={a.href}>
+                  <time dateTime={a.date}>{a.date}</time>
+                  <strong>{a.title}</strong>
+                  <span>{a.text}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+        <footer>
+          <Plus size={26} />
+          <p>
+            lost.plus · <a href="https://github.com/LPFchan">github</a>
+          </p>
+        </footer>
+      </div>
+
     </main>
   );
 }

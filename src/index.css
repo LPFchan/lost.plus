@@ -37,6 +37,7 @@
   --fit: none; /* font-size-adjust */
   --gap: 0.03em; /* letter-spacing */
   --shade: rgb(33 24 17 / 0.2);
+  --plain: 'Pretendard Variable', Pretendard, system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --spring: linear(
     0, 0.063, 0.204, 0.373, 0.536, 0.679, 0.793, 0.879, 0.94, 0.98, 1.005, 1.017,
@@ -80,7 +81,9 @@ body {
 .page {
   position: relative;
   isolation: isolate;
-  overflow-x: clip;
+  /* the thread's layer may run a little past the last section; the page
+     ends where its content does */
+  overflow: clip;
 }
 
 /* ---- the thread ---- */
@@ -412,7 +415,7 @@ a {
   gap: 10px;
   padding: 26px 16px 16px;
   color: var(--ink);
-  font: 400 14px/1.45 'Pretendard Variable', Pretendard, system-ui, sans-serif;
+  font: 400 14px/1.45 var(--plain);
   letter-spacing: 0;
   font-size-adjust: none;
   text-decoration: none;
@@ -431,6 +434,89 @@ a {
 .news:hover span:first-of-type {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* ---- the blog's posts and the footer, on a plain dark sheet that runs to
+   the end of the page: no paper, no tear ---- */
+
+.sheet {
+  --soft: #cdc4b9;
+  --faint: #8c827a;
+  position: relative;
+  z-index: 2;
+  margin-top: 60px;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.articles {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 72px 24px;
+  font: 400 15px/1.55 var(--plain);
+  letter-spacing: 0;
+  font-size-adjust: none;
+}
+
+.articles h2 {
+  margin-bottom: 28px;
+  color: var(--faint);
+  font: 600 13px/1 var(--plain);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.articles ul {
+  display: grid;
+  gap: 28px;
+  padding: 0;
+  list-style: none;
+}
+
+.articles a {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  column-gap: 16px;
+  row-gap: 4px;
+  text-decoration: none;
+}
+
+.articles time {
+  grid-row: span 2;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.articles strong {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.articles span {
+  color: var(--soft);
+}
+
+.articles a:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sheet footer {
+  padding-top: 48px;
+}
+
+@media (max-width: 560px) {
+  .articles a {
+    grid-template-columns: 1fr;
+  }
+
+  .articles time {
+    grid-row: auto;
+  }
 }
 
 footer {
