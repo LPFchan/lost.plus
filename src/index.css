@@ -403,6 +403,33 @@ a {
   transition: rotate 400ms var(--spring), translate 400ms var(--spring);
 }
 
+/* ---- the newest post, pinned above the page: plain type, no paper ---- */
+
+.news {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgb(33 24 17 / 0.12);
+  color: var(--ink);
+  font: 400 14px/1.45 'Pretendard Variable', Pretendard, system-ui, sans-serif;
+  letter-spacing: 0;
+  font-size-adjust: none;
+  text-decoration: none;
+}
+
+.news b {
+  flex: none;
+  color: #d9580d;
+  font-weight: 700;
+}
+
+.news:hover span:first-of-type {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 footer {
   position: relative;
   z-index: 2;

@@ -47,6 +47,11 @@ is drawn in the browser.
 - `src/App.tsx` is the page: the order of the scenes, and the two sheets laid
   over the paper (`Band`: tan and night), whose torn edges are a
   generated `clip-path`.
+- `NEWS` in `src/App.tsx` is a plain strip pinned above the page that links
+  the newest blog post. It is deliberately not part of the drawing: flat,
+  set in Pretendard (`pretendard` from npm), with an orange NEW. Korean
+  readers get the Korean line and the `?lang=ko` link, everyone else the
+  English one, since posts are only written in those two.
 - `src/index.css` holds the look. Surfaces and inks are the yeowool palette;
   the thread and the red plus are the only colour. The type is Gaegu Light,
   bundled from `@fontsource/gaegu`, which has English's letters and no

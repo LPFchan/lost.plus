@@ -6,6 +6,7 @@ import Thread from './Thread';
 import { tear, tearAround } from './ink';
 import { LANG } from './i18n';
 import { Plus } from './kit';
+import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import Hero from './scenes/hero';
 import Drift from './scenes/drift';
 import Mesh from './scenes/mesh';
@@ -17,6 +18,12 @@ import Join from './scenes/join';
 
 // the phone call is shown to Korean readers alone (see `call` in i18n.ts)
 const KOREAN = LANG === 'ko';
+
+// the newest post on the blog, pinned above the page; the post only exists
+// in English and Korean, so every other language gets the English one
+const NEWS = KOREAN
+  ? { href: '/sentiencebench?lang=ko', text: 'SentienceBench: 38개 언어 모델에게 자신의 의식에 대해 묻는 벤치마크' }
+  : { href: '/sentiencebench', text: 'SentienceBench: a benchmark that asks 38 language models about their own sentience' };
 
 /** a sheet laid over the page: night runs edge to edge and is torn along
     its top and bottom, tan is a piece torn all round */
@@ -51,6 +58,12 @@ export default function App() {
   return (
     <main className="page" ref={page}>
       <Thread />
+
+      <a className="news" href={NEWS.href} lang={KOREAN ? 'ko' : 'en'}>
+        <b>NEW</b>
+        <span>{NEWS.text}</span>
+        <span aria-hidden="true">→</span>
+      </a>
 
       <Hero />
       <Drift />
