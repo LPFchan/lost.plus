@@ -1,0 +1,82 @@
+/* hero: the collage of machines around the title card, and the plus the thread
+   gathers at, pinned to the foot of the drawing so the thread is one line. */
+
+/* the title card, pasted over the middle of the pile */
+.hero-card {
+  position: absolute;
+  translate: -50% -50%;
+  width: max-content;
+  max-width: 94%;
+}
+
+.hero .hero-title {
+  max-width: 440px;
+  padding: 24px 34px 26px;
+}
+
+/* a title longer than the English one (--n letters) is written smaller,
+   so it still fits on one line */
+.hero .hero-title h1 {
+  font-size: calc(748px / var(--n));
+  text-wrap: balance;
+}
+
+.hero-title p {
+  text-wrap: balance;
+}
+
+.hero-stage {
+  position: relative;
+  width: 100%;
+  max-width: 940px;
+  margin-bottom: 42px;
+}
+
+.hero-stage .art {
+  width: 100%;
+}
+
+/* a machine's inner parts: a lighter pen than its outline */
+.art .hero-fine {
+  stroke-width: 1;
+}
+
+.hero-plus {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  translate: -50% -50%;
+  display: block;
+  line-height: 0;
+}
+
+.hero .hero-plus .plus {
+  margin-top: 0;
+}
+
+/* the plus sits inside the drawing, so it has to win back its own colour */
+.hero-plus .plus path {
+  stroke: var(--mark);
+  stroke-width: 2;
+}
+
+/* the stacked plan, as in hero.tsx */
+@media (max-width: 980px) {
+  .hero-stage {
+    max-width: 520px;
+  }
+}
+
+@media (max-width: 760px) {
+  .hero-stage {
+    margin-bottom: 34px;
+  }
+
+  .hero .hero-title {
+    padding: 18px 22px 20px;
+  }
+
+  .hero .hero-title h1 {
+    font-size: calc(min(612px, 150vw) / var(--n));
+  }
+}

@@ -1,0 +1,23 @@
+/* the door: the one thing on this page to press */
+.scrap.join-door {
+  margin-top: 6px;
+  padding: 14px 44px 16px;
+  font-size: 27px;
+}
+
+/* the name under a machine */
+.scrap.join-card {
+  display: block;
+  padding: 5px 13px 6px;
+}
+
+@media (max-width: 760px) {
+  .scrap.join-door {
+    padding: 12px 34px 14px;
+    font-size: 23px;
+  }
+
+  .scrap.join-card {
+    padding: 4px 8px 5px;
+  }
+}

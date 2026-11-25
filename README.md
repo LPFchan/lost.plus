@@ -1,236 +1,102 @@
 # lost.plus
 
-A static launcher for the web services I host. It has had two looks so far,
-and both are kept: an **era selector** in the top-right corner (desktop only)
-swaps them live.
+The welcome page for fleet: what it is, what it does, and how to join. One
+long sheet of paper, a drawing per idea with a line of caption, and a thread
+running through all of them. The drawings do the explaining; the words stay
+few.
 
-- **v1** — a macOS dock (magnify on hover, spring physics, bounce on click)
-  over the sky, the trees and the bird. The default for now. On phones its
-  folder grid scrolls within the panel when the entries exceed the screen height.
-- **v2** — a watchOS-style list over the same sky, dimmed, trees gone. Rows
-  rest small and grey; the ones around the pointer magnify vertically with
-  the dock's own curve, and the one under it comes to life in colour. Hold
-  there two seconds (a ring fills clockwise around the icon) and the row
-  opens into its links, a blurb and a picture. Click or tap still launches.
+Built with Vite + React. No UI library and no images: every line on the page
+is drawn in the browser.
 
-Built with Vite + React + Tailwind v4 + framer-motion; the dock interaction
-started as the
-[buildui magnified-dock recipe](https://buildui.com/recipes/magnified-dock),
-with the tray's edges reworked (see below).
+## How the page is drawn
 
-## Eras
+- `src/ink.ts` is the pen. A seeded random source (`rng`) feeds a few
+  functions that draw nearly straight strokes, circles that do not quite
+  close, and lines of writing too small to read. The seed is fixed per
+  drawing, so the wobble looks hand-made and comes out the same every visit.
+- `src/scenes/` holds one file per section of the page (hero, drift,
+  mesh, agents, tools, cloud, call, join). A scene owns its
+  caption and its drawing, and may bring its own stylesheet beside it, with
+  every class prefixed by the scene's name.
+- `src/kit.tsx` is what scenes are built from: `Scene` and `Scrap` for the
+  words, `Art`, `Label`, `Paper`, `Knot` and `Glyph` for the drawings. A
+  drawing is composed on a canvas a thousand units wide and declares the span
+  that has ink in it (`x`): a wide page gives that span its share of the
+  width, a phone lets it fill the screen. The words on a drawing are HTML
+  laid over it (`Label`), positioned in the drawing's own coordinates, so
+  they stay a readable size however small the drawing is scaled. Strokes use
+  `vector-effect: non-scaling-stroke` for the same reason. Machines on the
+  page go by what they are (laptop, desktop, nas), never by a real hostname.
+- `src/scenes/marks.ts` draws the coding agents' own marks with the same pen.
+  `src/scenes/machines.ts` draws the six computers in the hero (loose
+  sketched strokes, no fills), and `src/scenes/things.ts` the paper cut-outs
+  in the connected-accounts scene.
+- `src/i18n.ts` holds every word on the page, one catalog per language (29
+  of them). The language is the first one the browser asks for that has a
+  catalog, or `?lang=de` in the address. A caption breaks into one scrap of
+  paper per line (`\n`). Japanese and Chinese mark where a line may break
+  with `|`. Arabic turns the page right-to-left. The phone-call scene is
+  written and shown in Korean only, because the call service only rings
+  Korean numbers.
+- `src/Thread.tsx` is the thread. It runs through every element marked
+  `data-thread`, in document order; a drawing places one with `<Knot>`. The
+  path is laid out from where those elements really are, so it follows the
+  page at any width and is laid out again when the page resizes. It is drawn
+  only as far as the visitor has scrolled (a spring chases the scroll
+  position) and stays drawn when they scroll back up.
+- `src/App.tsx` is the page: the order of the scenes, and the two sheets laid
+  over the paper (`Band`: tan and night), whose torn edges are a
+  generated `clip-path`.
+- `src/index.css` holds the look. Surfaces and inks are the yeowool palette;
+  the thread and the red plus are the only colour. The type is Gaegu Light,
+  bundled from `@fontsource/gaegu`, which has English's letters and no
+  others. Hangul is set in 나눔손글씨 암스테르담 (Naver, SIL Open Font
+  License), subset to the 2,350 common syllables in `src/fonts/`. Japanese
+  is Yomogi, Chinese LXGW WenKai Light, Hindi Kalam Light, Arabic Playpen
+  Sans Arabic Light, and every other language Playpen Sans Light, scaled to
+  Gaegu's size. Each comes from its npm package and is fetched only for its
+  own language (`HANDS` in `src/i18n.ts`, the stacks in `src/index.css`).
+- Torn paper comes from the same pen. `tearAround` makes the `clip-path` of a
+  scrap in the page (`Scrap` in `src/kit.tsx`: captions, commands, the
+  sign-in), and `torn` makes the same shape as a path for paper pasted inside
+  a drawing (`Paper` in `src/kit.tsx`). Every scrap is the paper plus a
+  copy of itself underneath as its shadow, and its seed picks its tear, tint
+  and tilt.
 
-`src/eras/index.ts` is the registry: each era is a component that draws over
-the shared backdrop, plus the look it wants from the scene (`trees`, `dim`,
-`forceDark`). `App` mounts the chosen era and hands the backdrop that look by
-reference; the canvas never remounts across a switch, so the hero only hides
-its tree meshes, sends the bird back to crossing the sky, and eases its
-exposure. Both eras read the one list in `src/entries.ts`; v2 also shows an
-entry's `about`, `media` and `links`.
+`prefers-reduced-motion` shows the whole thread at once and drops the
+scenes' entrance.
 
-The choice persists in `localStorage` (`lp-era`); `?era=v1|v2` overrides it
-and is saved. A first visit gets `defaultEra()`: v1 on desktop, v2 on phones,
-which never show the selector.
+## Adding a scene
 
-v2's list: `src/eras/v2/index.tsx`. The magnification curve it shares with
-the dock lives in `src/magnify.ts`, but v2 applies it as *height*, not a
-transform. Everything on the list is an item on that one curve: a row's
-head, and, when the row is open, each line of its card (links, blurb,
-picture) on its own. An item's height is its resting extent grown by the
-curve at the distance to its centre, what is inside is laid out at rest
-and scaled to fill it, and neighbours are pushed by layout; an open row is
-just a short run of items, each breathing on its own as the pointer
-passes. The card's lines are part of the resting grid, so the rows past a
-card are as far from the pointer as they look. The list slides up by
-exactly the growth above the pointer's grid point, which keeps the point
-under the pointer still and stops the geometry chasing the cursor. Two
-more offsets are held: the slide that keeps an open card inside the
-viewport (as far as the top allows), and the height of a card that closed
-above the pointer, so moving from a card into the row below it does not
-throw the list. While nothing is open, each pointer move pays part of that
-hold back at half the pointer's speed, so the list finds its way home
-under cover of motion rather than creeping; the rest goes when the pointer
-leaves. Moving on to another row closes
-the open one at once and starts that row's dwell; a mouse leaving the list
-closes it, a lifted finger leaves it open for its links. On touch the list
-is `touch-action: none`, so a finger scrubs the magnification instead of
-scrolling; a tap launches, a press-and-hold opens the detail, and a scrub
-does neither. The page itself never scrolls. Resting rows, including their icons and labels, shrink to fit the available
-viewport height, so adding entries keeps the complete list reachable on short
-screens.
+Add `src/scenes/<name>.tsx` that default-exports a component whose root is a
+`<Scene>` (or any `<section className="scene">`), put a `<Knot>` in its
+drawing where the thread should pass, and list it in `src/App.tsx`.
 
-`scripts/v2-probe.cjs` drives the list with a synthetic mouse and finger in
-headless Chromium and prints the settled geometry of every row, step by
-step, for a set of scenarios (a sweep, an open card walked through, the
-crossing from a card into the row below, a card near the viewport's
-bottom, a touch hold). Its header says how to run it; it is how the model
-above was checked, and the first thing to reach for when the feel is off.
+A scene makes one point. Its drawing shows the real thing (the real command,
+the real file, what really appears on the screen) rather than a metaphor, and
+its caption is a plain sentence or two saying what is true, not a slogan.
+Add its words to every catalog in `src/i18n.ts`, and keep words that sit
+on a drawing (labels, the lines on a sheet) about as short as the English. If the idea needs a paragraph, the drawing is
+not carrying it yet. Check it at 1280px and at 390px wide. Every claim on the
+page should be something fleet actually does: check it against `LPFchan/auth`
+(`fleet/README.md`) first.
 
-Every number in the list (row size, scale, distance, dwell, spring,
-resting opacity) and the scene's dim are live in the tuning console (below,
-under "list"), stored in `lp-list-2` and `lp-dim` (the list key is
-versioned because its slots are positional); `src/tune.ts` holds the
-fields and their defaults.
+## The launcher this replaced
 
-## Dock tray
+Until 2026-11 this site was a launcher for the services under lost.plus, with
+two looks (a macOS dock, then a watchOS-style list) over a WebGL sky. It is in
+the history before this README changed.
 
-The tray hugs the icons at each end, holding the padding it has at rest.
-
-The recipe stretched it by a fixed 40px keyed off the cursor position, which
-broke that padding two separate ways once the tuning moved away from the
-recipe's defaults. An end icon shoved away from the cursor travels `nudge`
-(61px) and outran the tray, closing the gap to 7px. An end icon that *is* the
-hovered one isn't shoved at all — it only magnifies — so the tray ran away from
-it instead and the gap opened to 42px.
-
-Both edges are now derived from the same `magnify()` the icons transform with,
-so there is no constant left to keep in sync with the tuning, and growth is
-handled by the same measurement as the nudge rather than being missed. Because
-the tray hugs the icons' *button* box, the visible gap around any icon works out
-to `padding + scale * inset` on all four sides at once — uniform all around,
-whether that icon is magnified or not.
-
-The corner radius deliberately does not follow: it feeds the glass shader,
-whose shape model carries one radius for all four corners, so a tray whose two
-ends had grown by different amounts could not be expressed.
-
-## Backdrop and glass
-
-The background is a small procedural landscape — sky, sun and moon, drifting
-clouds, out-of-focus tree branches, and a tit that flies across now and then —
-ported from the hero on
-[anthropic.com/claude-fable-and-mythos-5-1](https://www.anthropic.com/claude-fable-and-mythos-5-1).
-The dock tray (and the phone-sized folder grid) are rendered as refracting
-glass on top of it. Both are drawn on a single full-screen WebGL2 canvas; the
-glass lens is adapted from the one on
-[setup.lost.plus](https://github.com/LPFchan/setup/blob/main/index.html), and
-the scene itself is three.js plus custom GLSL, vendored into `src/hero/`.
-
-The scene rides the sun over Seoul (KST), not the visitor's clock: a NOAA
-solar-position fix gives the sun's elevation and azimuth, and the palette
-mixes continuously between four looks — day, morning, dusk, night — instead
-of snapping between the original's three swatches. When the scene is in its
-dark phase it also flips the page to dark mode (and the dock glass to its
-dark tint), taking over from `prefers-color-scheme`, which only guesses the
-first paint. Almost everything is procedural: the sky dome, the moon, the
-cloud decks, and the tree/leaf generator are pure shader and geometry; the
-only bitmap assets are the bird's GLB and its feather/bark textures in
-`public/fx/hero/`. A post pipeline adds the separable bokeh depth of field,
-ACES tone mapping, vignette and grain.
-
-They have to be one canvas and one draw, or the glass would be bending a
-backdrop one frame stale. Each frame:
-
-1. the scene, composited into one offscreen texture by the hero
-2. that texture again over just the panel's rect, into a mipmapped buffer
-   (one `generateMipmap` builds the whole frost ladder)
-3. the optics, back over the panel's rect
-
-The hero renders into its own render target and the mesh pass samples that
-texture, so both draws read the same frame by construction and there is no
-per-frame texture upload.
-
-The panel elements in the DOM keep only a tint and a lit rim (`.glass-panel`
-in `src/index.css`); the bending happens on the canvas underneath them. Dock
-icons therefore sit *on* the glass rather than being refracted by it — they
-were never in the texture.
-
-Notes:
-
-- The original's cloud shader parts the deck around the page's hero words
-  (screen-space DOM rects fed in as 'shelters'). This backdrop has no hero
-  text, so that feature is disabled; with no rects fed in it would otherwise
-  carve a hard rectangle into the clouds. The wind, pointer parallax, bird
-  behaviour and depth of field are all kept.
-- `Dock` hands `Backdrop` both candidate panels; the one the 480px breakpoint
-  hides measures zero, so the breakpoint stays in the stylesheet only. v2 has
-  no glass at all and hands over nothing.
-- On narrow windows the whole dock is CSS-scaled. The shader solves the optics
-  on the undeformed panel and pushes the result back out, so the rim doesn't
-  thin as the window narrows.
-- No WebGL2 (blocklisted GPU, VM, acceleration off): the canvas stays hidden
-  and a CSS radial-gradient approximation on `body` plus the plain
-  `backdrop-filter` panel is the whole effect.
-- `prefers-reduced-motion` parks the drift; the refraction still runs.
-- Two frame-rate escapes: the hero renders at an internal resolution scaled by
-  `?quality=` (default 0.7; 0.6-0.8 is the weak-GPU band, 1 is full), and when the
-  pointer has been idle for four seconds the whole canvas drops to 30fps - the
-  only motion left at that point is wind, clouds and the sun's crawl, none of
-  which need 60. A pointer move returns to full rate within a frame.
-- The lens strength is tunable live with `?lens=bleed,thick,disp,ior,lod,tint`
-  (all px in the undeformed panel, `tint` the CSS whiteness over the glass).
-  The defaults pull 140px of scene into the rim and frost the panel interior
-  by sampling a deeper mip away from the bend.
-- A hidden diagnostic console tunes all of this live: type the arrow
-  sequence up up down down left right left right (Konami-style) anywhere on
-  the page and a glass panel opens with an fps meter, a quality slider, sun
-  and cloud pins, and the six lens fields. The same sequence closes it.
-  Settings persist in localStorage (lp-quality, lp-sun, lp-cloud, lp-lens);
-  URL params still win when both are set. Reset clears it all. The live hero
-  handle is also on `window.__hero` for poking at from the dev tools.
-- three.js is code-split (`import('./hero')`) so it streams in after first
-  paint; until it (and then the bird's GLB) is ready the canvas shows a flat
-  field in the same palette family.
-- Don't hand-write `-webkit-` prefixes in `index.css`. lightningcss collapses
-  a prefixed/unprefixed pair down to the prefixed one and drops the standard
-  property; it adds the prefixes correctly on its own.
-
-## PWA
-
-The site is installable as a PWA (standalone window, offline-capable) via
-`vite-plugin-pwa`:
-
-- `vite.config.ts` holds the web app manifest and the workbox config
-  (precache the whole build, `navigateFallback: index.html`).
-- Service worker is registered in `src/main.tsx` with
-  `registerSW({ immediate: true })` and `registerType: 'autoUpdate'`, so
-  returning visitors pick up new deploys automatically.
-- `index.html` requests an edge-to-edge standalone viewport with
-  `black-translucent` and `viewport-fit=cover`. Rendered day and night frames
-  live on the root canvas for WebKit's outside-viewport painting and serve as
-  the no-WebGL fallback. The manifest deliberately omits `theme_color` so
-  Safari can derive those outside-viewport areas from the root background.
-- Icons live in `public/` (not `src/assets/`, so they keep stable
-  un-hashed URLs): `pwa-192x192.png` / `pwa-512x512.png` (standard),
-  `maskable-*.png` (icon scaled to 80% on a `#f6f5f2` canvas, inside the
-  Android safe zone), and `apple-touch-icon.png` (180px, opaque).
-
-## Icons
-
-Drop a **raw rectangular image** (png/jpg/svg) into `src/assets/raw/` and add an
-entry in `src/entries.ts`. Every dock icon goes through a single CSS pipeline
-(`.macos-icon` in `src/index.css`) that owns the macOS geometry from
-[sundegan/macos-icon-generator](https://github.com/sundegan/macos-icon-generator):
-
-- content is 13/16 of the canvas (`padding: 9.375%`, symmetric on all sides)
-- corner radius is 22% of the content (`border-radius: 22%`)
-- shadows copied from [icon.kitchen](https://icon.kitchen)'s macOS renderer:
-  an outer drop shadow plus a two-sided bevel (white from the top, black
-  from the bottom), sized in container units so they scale with the icon
-
-Geometry is never per-icon. Each entry only picks a **treatment** for its
-content inside the standard canvas:
-
-| treatment    | use for | what happens |
-| ------------ | ------- | ------------ |
-| `cover` (default) | raw rectangular artwork | cover-fit, center-cropped, rounded |
-| `preshaped`  | artwork that is already a finished macOS icon (824px body on a 1024 canvas) | masked to its exact squircle body (`src/assets/squircle.svg`, the ship skill frame's outline), dropping any baked-in shadow, and scaled to fill the content box; keeps its own bevel |
-| `tile`       | a glyph (e.g. the github octocat) | placed on a colored rounded tile; tile fills the standard content box, glyph scale is derived |
-
-Because sizing lives in exactly one place, it is impossible for one icon to
-come out bigger or smaller than another.
+The launcher was an installable PWA whose service worker cached the whole
+site. `vite.config.ts` therefore still ships a worker at `/sw.js`, one that
+unregisters itself and clears those caches, so returning visitors get this
+page instead of their stored copy. Keep it until nobody can still have the
+old one.
 
 ## Develop
 
 ```sh
-npm install
-npm run dev
-npm run build   # outputs static site to dist/
+npm ci
+npm run dev      # local server
+npm run build    # type-check, then build into dist/
 ```
-
-## Deploy
-
-Hosted on oci-ubuntu as static files served by `caddy` (file_server on
-127.0.0.1:8400, root `/var/www/lost.plus`), fronted by the host-level
-`cloudflared` tunnel (hostname `lost.plus` -> `http://localhost:8400`).
-Deploy = `npm run build` + rsync `dist/` to `/var/www/lost.plus/`.

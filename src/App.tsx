@@ -1,44 +1,79 @@
-import { useEffect, useRef, useState } from 'react';
-import Backdrop, { BackdropLook, GlassTarget } from './Backdrop';
-import EraSelector from './EraSelector';
-import { ERAS, initialEra, saveEra } from './eras';
+// lost.plus: the welcome page for fleet. One long sheet of paper, a scene
+// per idea (src/scenes/), and a thread through all of them.
+
+import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react';
+import Thread from './Thread';
+import { tear, tearAround } from './ink';
+import { LANG } from './i18n';
+import { Plus } from './kit';
+import Hero from './scenes/hero';
+import Drift from './scenes/drift';
+import Mesh from './scenes/mesh';
+import Agents from './scenes/agents';
+import Tools from './scenes/tools';
+import Cloud from './scenes/cloud';
+import Call from './scenes/call';
+import Join from './scenes/join';
+
+// the phone call is shown to Korean readers alone (see `call` in i18n.ts)
+const KOREAN = LANG === 'ko';
+
+/** a sheet laid over the page: night runs edge to edge and is torn along
+    its top and bottom, tan is a piece torn all round */
+export function Band({ kind, seed, children }: { kind: 'night' | 'tan'; seed: number; children: ReactNode }) {
+  const edge = useMemo(() => (kind === 'night' ? tear(seed) : tearAround(seed, 9, 44, 26)), [kind, seed]);
+  return (
+    <div className={`band ${kind}`} style={{ '--tear': edge } as CSSProperties}>
+      {children}
+    </div>
+  );
+}
 
 export default function App() {
-  const [eraId, setEraId] = useState(initialEra);
-  const era = ERAS.find((e) => e.id === eraId) ?? ERAS[0];
+  const page = useRef<HTMLElement>(null);
 
-  // The era fills this in with its glass panels; the backdrop reads it every
-  // frame to know what to refract. Cleared on a switch so a departed era's
-  // panels are never measured.
-  const glass = useRef<GlassTarget[]>([]);
-  const look = useRef<BackdropLook>(era.look);
-  look.current = era.look;
-
+  // A scene comes in once, when it is first scrolled to.
   useEffect(() => {
-    document.documentElement.dataset.era = era.id;
-    // Without WebGL nothing else drives the theme, so an era that wants dark
-    // sets it here; with the scene running, Backdrop re-derives it per frame.
-    if (era.look.forceDark) document.documentElement.classList.add('dark');
-    else if (!document.documentElement.hasAttribute('data-sky'))
-      document.documentElement.classList.remove('dark');
-    return () => {
-      glass.current = [];
-    };
-  }, [era]);
+    const seen = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries)
+          if (e.isIntersecting) {
+            e.target.classList.add('in');
+            seen.unobserve(e.target);
+          }
+      },
+      { rootMargin: '0px 0px -18% 0px' },
+    );
+    page.current!.querySelectorAll('.scene').forEach((el) => seen.observe(el));
+    return () => seen.disconnect();
+  }, []);
 
   return (
-    <>
-      <Backdrop glass={glass} look={look} />
-      {/* The backdrop canvas is positioned, so unpositioned content would
-          paint underneath it. Each era lifts its page into a layer above. */}
-      <era.Component key={era.id} glass={glass} />
-      <EraSelector
-        era={era.id}
-        onChange={(id) => {
-          saveEra(id);
-          setEraId(id);
-        }}
-      />
-    </>
+    <main className="page" ref={page}>
+      <Thread />
+
+      <Hero />
+      <Drift />
+      <Mesh />
+
+      <Band kind="tan" seed={4}>
+        <Agents />
+      </Band>
+
+      <Band kind="night" seed={6}>
+        <Tools />
+        <Cloud />
+        {KOREAN && <Call />}
+      </Band>
+
+      <Join />
+
+      <footer>
+        <Plus size={26} />
+        <p>
+          lost.plus · <a href="https://github.com/LPFchan">github</a>
+        </p>
+      </footer>
+    </main>
   );
 }
