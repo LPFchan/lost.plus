@@ -43,20 +43,20 @@ const WIDE: Plan = {
   thread: [[470, 360], [484, 430], [490, 520], [480, 600], [470, 640]],
 };
 
-// on a phone: two, then one, above the card, and the same below it
+// on a phone: a tighter circular ring hugging right around the title card
 const NARROW: Plan = {
-  h: 978,
-  x: [0, 520],
-  card: [260, 487],
+  h: 700,
+  x: [0, 680],
+  card: [340, 344],
   spots: [
-    { kind: 'laptop', x: 0, y: 6, rot: -3, s: 1, tone: CREAM, seed: 215, order: 0 },
-    { kind: 'tower', x: 312, y: 0, rot: 2, s: 1, tone: SWEATER, seed: 205, order: 1 },
-    { kind: 'rack', x: 96, y: 204, rot: -2, s: 1, tone: ASH, seed: 209, order: 2 },
-    { kind: 'mini', x: 124, y: 594, rot: 2, s: 1.45, tone: CREAM, seed: 203, order: 3 },
-    { kind: 'nas', x: 4, y: 748, rot: 2.5, s: 1, tone: TAN, seed: 207, order: 4 },
-    { kind: 'puck', x: 312, y: 768, rot: -3, s: 1, tone: SWEATER, seed: 211, order: 5 },
+    { kind: 'laptop', x: 76, y: 14, rot: -3, s: 0.86, tone: CREAM, seed: 215, order: 0 },
+    { kind: 'rack', x: 356, y: 26, rot: 2, s: 0.86, tone: ASH, seed: 209, order: 1 },
+    { kind: 'tower', x: 522, y: 218, rot: -2, s: 0.78, tone: SWEATER, seed: 205, order: 2 },
+    { kind: 'nas', x: 0, y: 244, rot: 2.5, s: 0.78, tone: TAN, seed: 207, order: 5 },
+    { kind: 'mini', x: 96, y: 484, rot: -2.5, s: 1.22, tone: CREAM, seed: 203, order: 4 },
+    { kind: 'puck', x: 386, y: 470, rot: 3, s: 0.86, tone: ASH, seed: 211, order: 3 },
   ],
-  thread: [[260, 540], [270, 742], [276, 842], [264, 932], [260, 978]],
+  thread: [[340, 394], [352, 476], [358, 566], [350, 646], [340, 700]],
 };
 
 /** the paper around a machine, in the drawing's own units */
@@ -168,8 +168,8 @@ function Pinboard({ plan }: { plan: Plan }) {
   );
 }
 
-// below this the ring no longer has room around the card
-const STACK = '(max-width: 980px)';
+// below this the wide ring switches to the tighter circular ring
+const STACK = '(max-width: 680px)';
 
 export default function Hero() {
   const [narrow, setNarrow] = useState(() => matchMedia(STACK).matches);

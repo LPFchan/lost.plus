@@ -153,24 +153,44 @@
   animation: hero-stroke-in 250ms steps(1, end) 916.67ms forwards;
 }
 
-/* the stacked plan, as in hero.tsx */
+/* scale the title card gently with the wide ring on mid-sized windows */
 @media (max-width: 980px) {
-  .hero-stage {
-    max-width: 520px;
+  .hero .hero-title {
+    max-width: min(440px, 46vw);
+    padding: 20px 26px 22px;
+  }
+
+  .hero .hero-title h1 {
+    font-size: calc(min(748px, 76vw) / var(--n));
+  }
+
+  .hero-title p {
+    font-size: clamp(16px, 2.2vw, 21px);
   }
 }
 
-@media (max-width: 760px) {
+/* the tighter circular ring, as in hero.tsx */
+@media (max-width: 680px) {
+  .hero {
+    padding-inline: 10px;
+  }
+
   .hero-stage {
+    max-width: 600px;
     margin-bottom: 34px;
   }
 
   .hero .hero-title {
-    padding: 18px 22px 20px;
+    max-width: min(300px, 56vw);
+    padding: 14px 16px 16px;
   }
 
   .hero .hero-title h1 {
-    font-size: calc(min(612px, 150vw) / var(--n));
+    font-size: calc(min(480px, 94vw) / var(--n));
+  }
+
+  .hero-title p {
+    font-size: clamp(13px, 3.3vw, 17px);
   }
 }
 
