@@ -32,7 +32,7 @@
   40%  { opacity: 1; stroke-dashoffset: 0.213; }
   60%  { opacity: 1; stroke-dashoffset: 0.089; }
   80%  { opacity: 1; stroke-dashoffset: 0.036; }
-  100% { opacity: 1; stroke-dashoffset: 0; }
+  100% { opacity: 1; stroke-dasharray: none; stroke-dashoffset: 0; }
 }
 
 /* spring-draw (k=260, c=32) sampled at 12fps (3 frames = 250ms) */
@@ -40,7 +40,7 @@
   0%       { opacity: 1; stroke-dashoffset: 0.806; }
   33.333%  { opacity: 1; stroke-dashoffset: 0.364; }
   66.666%  { opacity: 1; stroke-dashoffset: 0.133; }
-  100%     { opacity: 1; stroke-dashoffset: 0; }
+  100%     { opacity: 1; stroke-dasharray: none; stroke-dashoffset: 0; }
 }
 
 @keyframes hero-plus-wiggle {
@@ -134,10 +134,12 @@
 }
 
 /* the plus sits inside the drawing, so it has to win back its own colour;
-   its two strokes ink in on beats 10 & 11 as the golden thread reaches the foot */
+   drop non-scaling-stroke here so Safari/WebKit doesn't scale pathLength
+   dasharrays by 24/34 and clip the stroke ends (1.42 * 34/24 ≈ 2px) */
 .hero-plus .plus path {
   stroke: var(--mark);
-  stroke-width: 2;
+  stroke-width: 1.42;
+  vector-effect: none;
   opacity: 0;
   stroke-dasharray: 1 1.08;
   stroke-dashoffset: 1.08;
@@ -181,6 +183,7 @@
     animation: none;
     opacity: 1;
     transform: none;
+    stroke-dasharray: none;
     stroke-dashoffset: 0;
   }
 }
