@@ -58,7 +58,7 @@ ${articlesHtml}
         </ul>
       </section>
       <footer>
-        <p>lost.plus · <a href="https://github.com/LPFchan">github</a> · <a href="/rss.xml">RSS</a> · <a href="/index.md">Markdown</a> · <a href="/llms.txt">llms.txt</a></p>
+        <p>lost.plus · <a href="https://github.com/LPFchan">github</a> · <a href="https://twitter.com/ahrimeh">twitter</a> · <a href="/rss.xml">RSS</a> · <a href="/index.md">Markdown</a> · <a href="/llms.txt">llms.txt</a></p>
       </footer>
     </main>`;
 }
@@ -79,7 +79,7 @@ function buildJsonLd(): string {
           '@type': 'Person',
           name: 'yeowool suh',
           url: `${BASE_URL}/`,
-          sameAs: ['https://github.com/LPFchan'],
+          sameAs: ['https://github.com/LPFchan', 'https://twitter.com/ahrimeh'],
         },
       },
       {
@@ -145,6 +145,7 @@ function buildMarkdownEn(): string {
     '## Links',
     '',
     `- GitHub: https://github.com/LPFchan`,
+    `- Twitter: https://twitter.com/ahrimeh`,
     `- RSS: ${BASE_URL}/rss.xml`,
     `- llms.txt: ${BASE_URL}/llms.txt`,
     '',
@@ -193,6 +194,7 @@ function buildMarkdownKo(): string {
     '## Links',
     '',
     `- GitHub: https://github.com/LPFchan`,
+    `- Twitter: https://twitter.com/ahrimeh`,
     `- RSS: ${BASE_URL}/rss.xml`,
     `- llms.txt: ${BASE_URL}/llms.txt`,
     '',

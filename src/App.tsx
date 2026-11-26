@@ -142,7 +142,7 @@ export default function App() {
         <footer>
           <Plus size={26} />
           <p>
-            lost.plus · <a href="https://github.com/LPFchan">github</a>
+            lost.plus · <a href="https://github.com/LPFchan">github</a> · <a href="https://twitter.com/ahrimeh">twitter</a>
           </p>
         </footer>
       </div>
