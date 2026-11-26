@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import Thread from './Thread';
 import { tear, tearAround } from './ink';
 import { handReady, LANG } from './i18n';
+import { ARTICLES as ALL_ARTICLES, NEWS as ALL_NEWS } from './articles';
 import { Plus } from './kit';
 import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import Hero from './scenes/hero';
@@ -21,22 +22,16 @@ const KOREAN = LANG === 'ko';
 
 // the newest post on the blog, pinned above the page; the post only exists
 // in English and Korean, so every other language gets the English one
-const NEWS = KOREAN
-  ? { href: '/sentiencebench?lang=ko', title: 'SentienceBench', text: '38개 언어 모델에게 자신의 의식에 대해 묻는 벤치마크' }
-  : { href: '/sentiencebench', title: 'SentienceBench', text: 'a benchmark that asks 38 language models about their own sentience' };
+const NEWS = KOREAN ? ALL_NEWS.ko : ALL_NEWS.en;
 
 // everything on the blog, newest first, listed on a dark sheet near the end
-// of the page; add a row here when a post goes up
-const ARTICLES = [
-  {
-    date: '2026-11-26',
-    title: 'SentienceBench',
-    href: KOREAN ? '/sentiencebench?lang=ko' : '/sentiencebench',
-    text: KOREAN
-      ? '38개 언어 모델에게 자신의 의식에 대해 묻고, 각 모델이 어떻게 추론하고 판단을 유보하며 반응하는지 지도로 정리한 벤치마크입니다.'
-      : 'A benchmark that asks 38 language models about their own sentience, and maps how each one reasons, hedges and reacts.',
-  },
-];
+// of the page; add a row in src/articles.ts when a post goes up
+const ARTICLES = ALL_ARTICLES.map((a) => ({
+  date: a.date,
+  title: a.title,
+  href: KOREAN ? `/${a.slug}?lang=ko` : `/${a.slug}`,
+  text: KOREAN ? a.ko : a.en,
+}));
 
 /** a sheet laid over the page: night runs edge to edge and is torn along
     its top and bottom, tan is a piece torn all round */

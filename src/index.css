@@ -595,7 +595,12 @@ footer {
 @media (prefers-reduced-motion: reduce) {
   .scene .words > *,
   .scene .after > *,
-  .scene .art,
+  .scene .art {
+    transition: none;
+    opacity: 1;
+    translate: none;
+  }
+
   .door {
     transition: none;
   }
