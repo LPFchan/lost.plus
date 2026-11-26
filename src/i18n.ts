@@ -2,7 +2,7 @@
 // visitor's browser asks for that is written here, or `?lang=` when the
 // address says so. A caption breaks into one scrap of paper per line.
 
-const en = {
+export const en = {
   title: 'the tale of fleet',
   tagline: 'where your laptops, desktops and home servers form one giant family.',
 
@@ -31,7 +31,7 @@ type Words = typeof en;
 /** a catalog with each `|` turned into a place a line may break */
 const phrased = (words: Words): Words => JSON.parse(JSON.stringify(words).split('|').join('\u200b'));
 
-const ko: Words = {
+export const ko: Words = {
   title: '플릿 이야기',
   tagline: '노트북, 데스크톱, 홈서버가 하나의 큰 가족이 되는 곳.',
   drift: '컴퓨터가 두 대 이상이면,\n똑같이 설정을 맞춰 두기가 귀찮아져요.',
@@ -568,9 +568,11 @@ function find(tag: string): Lang | undefined {
   return named(low) ?? named(low.split('-')[0]);
 }
 
-const asked = new URLSearchParams(location.search).get('lang');
+const hasBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+const asked = hasBrowser ? new URLSearchParams(location.search).get('lang') : null;
+const navLangs = typeof navigator !== 'undefined' ? navigator.languages : [];
 
-export const LANG: Lang = [...(asked ? [asked] : []), ...navigator.languages].map(find).find(Boolean) ?? 'en';
+export const LANG: Lang = [...(asked ? [asked] : []), ...navLangs].map(find).find(Boolean) ?? 'en';
 export const t = ALL[LANG];
 
 // The hand a language is written in, where Gaegu has no letters for it
@@ -583,10 +585,12 @@ const HANDS: Partial<Record<Lang, () => Promise<unknown>>> = {
   hi: () => import('@fontsource/kalam/300.css'),
   ar: () => import('@fontsource/playpen-sans-arabic/300.css'),
 };
-export const handReady: Promise<unknown> = (
-  HANDS[LANG] ?? (() => import('@fontsource/playpen-sans/300.css'))
-)().catch(() => {});
+export const handReady: Promise<unknown> = hasBrowser
+  ? (HANDS[LANG] ?? (() => import('@fontsource/playpen-sans/300.css')))().catch(() => {})
+  : Promise.resolve();
 
-document.documentElement.lang = LANG;
-document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
-document.title = `${t.title} · lost.plus`;
+if (hasBrowser) {
+  document.documentElement.lang = LANG;
+  document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
+  document.title = `${t.title} · lost.plus`;
+}
